@@ -1,0 +1,16 @@
+CONNECTION_URL = yourmongodbconnectionurl
+JWT_SECRET = yourprivatekey
+JWT_COOKIE_EXPIRES_IN = 30
+JWT_EXPIRES_IN = 30d
+HOST = smtp.gmail.com
+SALT = 10
+SERVICE = gmail
+EMAIL_PORT = 587
+SECURE = true
+USER = yourprivateemail
+PASS = yourprivatepassword
+PORT = 5000
+BASE_URL = yourbaseurl
+
+// Watch this video to create CONNECTION_URL, gmail account ( User ) and generate password ( Pass )
+https://www.youtube.com/watch?v=0E1MM3tBqRo
