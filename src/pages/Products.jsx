@@ -89,7 +89,10 @@ function Products() {
   };
 
   const ProductCard = ({ product, index }) => (
-    <div
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.1 }}
       onClick={() => navigate(`/product/${product.id}`)}
       className={`bg-card border border-border rounded-xl shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden group ${
         viewMode === "list" ? "flex" : ""
@@ -179,21 +182,25 @@ function Products() {
           </button>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
-        <div className="mb-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8"
+        >
           <h1 className="text-4xl font-bold text-foreground mb-2">
             Discover Your Perfect Shoes
           </h1>
           <p className="text-muted-foreground">
             Browse our collection of premium footwear
           </p>
-        </div>
+        </motion.div>
 
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Filters Sidebar */}
@@ -208,7 +215,12 @@ function Products() {
           {/* Products Grid */}
           <div className="flex-1">
             {/* Toolbar */}
-            <div className="bg-card border border-border rounded-lg shadow-md p-4 mb-6 flex items-center justify-between">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="bg-card border border-border rounded-lg shadow-md p-4 mb-6 flex items-center justify-between"
+            >
               <div className="text-sm text-muted-foreground">
                 {isLoading ? (
                   <span>Loading...</span>
@@ -245,7 +257,7 @@ function Products() {
                   <FiList size={20} />
                 </button>
               </div>
-            </div>
+            </motion.div>
 
             {/* Loading State */}
             {isLoading && (
@@ -282,14 +294,18 @@ function Products() {
             {!isLoading && !error && (
               <>
                 {products.length === 0 ? (
-                  <div className="bg-card rounded-lg shadow-md p-12 text-center">
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="bg-card rounded-lg shadow-md p-12 text-center"
+                  >
                     <p className="text-muted-foreground text-lg">
                       No products found
                     </p>
                     <p className="text-muted-foreground text-sm mt-2">
                       Try adjusting your filters
                     </p>
-                  </div>
+                  </motion.div>
                 ) : (
                   <div
                     className={

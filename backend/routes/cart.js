@@ -24,7 +24,7 @@ router.get("/", async (req, res) => {
       .leftJoin(products, eq(carts.productId, products.id))
       .where(eq(carts.userId, req.user.id));
 
-    res.json(cartItems);
+    res.json({ items: cartItems });
   } catch (error) {
     console.error("Get cart error:", error);
     res.status(500).json({ message: "Server error" });
@@ -36,6 +36,11 @@ router.post("/", async (req, res) => {
   try {
     const { productId, quantity = 1, size, color } = req.body;
 
+    // Validate productId
+    if (!productId) {
+      return res.status(400).json({ message: "Product ID is required" });
+    }
+
     // Check if product exists
     const [product] = await db
       .select()
@@ -46,18 +51,25 @@ router.post("/", async (req, res) => {
       return res.status(404).json({ message: "Product not found" });
     }
 
+    // Build where conditions, only including defined values
+    const whereConditions = [
+      eq(carts.userId, req.user.id),
+      eq(carts.productId, productId),
+    ];
+
+    if (size !== undefined && size !== null) {
+      whereConditions.push(eq(carts.size, size));
+    }
+
+    if (color !== undefined && color !== null) {
+      whereConditions.push(eq(carts.color, color));
+    }
+
     // Check if item already in cart
     const [existingItem] = await db
       .select()
       .from(carts)
-      .where(
-        and(
-          eq(carts.userId, req.user.id),
-          eq(carts.productId, productId),
-          eq(carts.size, size),
-          eq(carts.color, color),
-        ),
-      );
+      .where(and(...whereConditions));
 
     if (existingItem) {
       // Update quantity
@@ -70,17 +82,23 @@ router.post("/", async (req, res) => {
       return res.json(updated);
     }
 
+    // Build insert values, only including defined fields
+    const insertValues = {
+      userId: req.user.id,
+      productId,
+      quantity,
+    };
+
+    if (size !== undefined && size !== null) {
+      insertValues.size = size;
+    }
+
+    if (color !== undefined && color !== null) {
+      insertValues.color = color;
+    }
+
     // Add new item
-    const [cartItem] = await db
-      .insert(carts)
-      .values({
-        userId: req.user.id,
-        productId,
-        quantity,
-        size,
-        color,
-      })
-      .returning();
+    const [cartItem] = await db.insert(carts).values(insertValues).returning();
 
     res.status(201).json(cartItem);
   } catch (error) {

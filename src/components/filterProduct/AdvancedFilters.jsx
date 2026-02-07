@@ -8,6 +8,7 @@ import {
   FiSearch,
 } from "react-icons/fi";
 import { BiReset } from "react-icons/bi";
+import { Slider } from "@/components/ui/slider";
 
 const AdvancedFilters = ({ filters, setFilters, isLoading }) => {
   const [isOpen, setIsOpen] = useState(true);
@@ -308,34 +309,14 @@ const AdvancedFilters = ({ filters, setFilters, isLoading }) => {
           {/* Price Range */}
           <FilterSection title="Price Range" sectionKey="price">
             <div className="px-2">
-              <div className="relative h-6 mb-6">
-                {/* Track background */}
-                <div className="absolute top-1/2 -translate-y-1/2 w-full h-1.5 bg-secondary/20 rounded-full" />
-                {/* Active track */}
-                <div
-                  className="absolute top-1/2 -translate-y-1/2 h-1.5 bg-accent rounded-full transition-all"
-                  style={{
-                    left: `${(priceRange[0] / 500) * 100}%`,
-                    right: `${100 - (priceRange[1] / 500) * 100}%`,
-                  }}
-                />
-                {/* Min slider */}
-                <input
-                  type="range"
+              <div className="mb-6 pt-2">
+                <Slider
                   min={0}
                   max={500}
-                  value={priceRange[0]}
-                  onChange={(e) => handlePriceChange(0, e.target.value)}
-                  className="price-slider absolute top-0 left-0 w-full"
-                />
-                {/* Max slider */}
-                <input
-                  type="range"
-                  min={0}
-                  max={500}
-                  value={priceRange[1]}
-                  onChange={(e) => handlePriceChange(1, e.target.value)}
-                  className="price-slider absolute top-0 left-0 w-full"
+                  step={1}
+                  value={priceRange}
+                  onValueChange={setPriceRange}
+                  className="w-full"
                 />
               </div>
               <div className="flex items-center justify-between gap-3">
@@ -421,49 +402,6 @@ const AdvancedFilters = ({ filters, setFilters, isLoading }) => {
       )}
 
       <style jsx>{`
-        .price-slider {
-          -webkit-appearance: none;
-          appearance: none;
-          background: transparent;
-          pointer-events: none;
-        }
-
-        .price-slider::-webkit-slider-thumb {
-          -webkit-appearance: none;
-          appearance: none;
-          width: 18px;
-          height: 18px;
-          border-radius: 50%;
-          background: var(--color-accent);
-          cursor: pointer;
-          pointer-events: auto;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-          border: 2px solid white;
-          transition: all 0.2s ease;
-        }
-
-        .price-slider::-webkit-slider-thumb:hover {
-          transform: scale(1.2);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        }
-
-        .price-slider::-moz-range-thumb {
-          width: 18px;
-          height: 18px;
-          border-radius: 50%;
-          background: var(--color-accent);
-          cursor: pointer;
-          pointer-events: auto;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-          border: 2px solid white;
-          transition: all 0.2s ease;
-        }
-
-        .price-slider::-moz-range-thumb:hover {
-          transform: scale(1.2);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        }
-
         .custom-scrollbar::-webkit-scrollbar {
           width: 6px;
         }

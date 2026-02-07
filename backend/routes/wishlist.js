@@ -15,6 +15,7 @@ router.get("/", async (req, res) => {
     const wishlistItems = await db
       .select({
         id: wishlists.id,
+        productId: wishlists.productId,
         createdAt: wishlists.createdAt,
         product: products,
       })
@@ -22,7 +23,7 @@ router.get("/", async (req, res) => {
       .leftJoin(products, eq(wishlists.productId, products.id))
       .where(eq(wishlists.userId, req.user.id));
 
-    res.json(wishlistItems);
+    res.json({ items: wishlistItems });
   } catch (error) {
     console.error("Get wishlist error:", error);
     res.status(500).json({ message: "Server error" });

@@ -56,7 +56,7 @@ router.put("/profile", authMiddleware, async (req, res) => {
     if (name !== undefined) updateData.name = name;
     if (phone !== undefined) updateData.phone = phone;
     if (address !== undefined) updateData.address = address;
-    updateData.updatedAt = new Date().toISOString();
+    updateData.updatedAt = new Date();
 
     const [updatedUser] = await db
       .update(users)
