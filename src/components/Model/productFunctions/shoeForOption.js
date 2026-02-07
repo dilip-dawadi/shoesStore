@@ -2,20 +2,25 @@ import React from "react";
 import { NotifyInfo } from "../../../toastify";
 
 export default function ShoeForOption({ shoeFor, setShoeFor, AddProductData }) {
-    const reSetshoeFor = () => {
-        setShoeFor({
-            ...AddProductData, shoeFor: ["Lounging", "Everyday", "Running"]
-        })
-    };
-    return (
-        <div className="
+  const reSetshoeFor = () => {
+    setShoeFor({
+      ...AddProductData,
+      shoeFor: ["Lounging", "Everyday", "Running"],
+    });
+  };
+  return (
+    <div
+      className="
                 flex flex-wrap
                 items-center
                 justify-center
                 w-full
-            ">
-            {shoeFor?.map((forOption, index) => (
-                <div key={index} className="
+            "
+    >
+      {shoeFor?.map((forOption, index) => (
+        <div
+          key={index}
+          className="
                         flex items-center
                         bg-gray-100
                         rounded-full
@@ -24,11 +29,12 @@ export default function ShoeForOption({ shoeFor, setShoeFor, AddProductData }) {
                         text-sm
                         text-black
                         font-normal
-                    ">
-                    {forOption}
-                    <button
-                        type="button"
-                        className="
+                    "
+        >
+          {forOption}
+          <button
+            type="button"
+            className="
                             ml-[0.3rem]
                             flex-shrink-0
                             flex
@@ -36,44 +42,53 @@ export default function ShoeForOption({ shoeFor, setShoeFor, AddProductData }) {
                             justify-center
                             h-4 w-4
                             rounded-full
-                            bg-[#fe2856]
+                            bg-destructive
                             text-white
                             leading-none
                             focus:outline-none
                             focus:ring-2
                             focus:ring-offset-2
                             focus:ring-offset-gray-100
-                            focus:ring-[#fe2856]
+                            focus:ring-destructive-600
                         "
-                        onClick={() => {
-                            setShoeFor({
-                                ...AddProductData,
-                                shoeFor: shoeFor.filter((t) => t !== forOption || shoeFor.length === 1),
-                            });
-                            if (shoeFor.length === 1) {
-                                NotifyInfo("You must have at least one shoeFor option");
-                            }
-                        }}
-                    >
-                        <span className="sr-only">Remove shoeFor</span>
-                        <svg
-                            className="h-2 w-2"
-                            stroke="currentColor"
-                            fill="none"
-                            viewBox="0 0 8 8"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth="2"
-                                d="M1 1l6 6M1 7l6-6"
-                            />
-                        </svg>
-                    </button>
-                </div>
-            ))}
-            <button type="button" className=" bg-gray-100 rounded-full px-3 py-1 mb-2 mr-2 text-sm
-                        text-black font-normal" onClick={reSetshoeFor}> Reset </button>
+            onClick={() => {
+              setShoeFor({
+                ...AddProductData,
+                shoeFor: shoeFor.filter(
+                  (t) => t !== forOption || shoeFor.length === 1,
+                ),
+              });
+              if (shoeFor.length === 1) {
+                NotifyInfo("You must have at least one shoeFor option");
+              }
+            }}
+          >
+            <span className="sr-only">Remove shoeFor</span>
+            <svg
+              className="h-2 w-2"
+              stroke="currentColor"
+              fill="none"
+              viewBox="0 0 8 8"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M1 1l6 6M1 7l6-6"
+              />
+            </svg>
+          </button>
         </div>
-    );
+      ))}
+      <button
+        type="button"
+        className=" bg-gray-100 rounded-full px-3 py-1 mb-2 mr-2 text-sm
+                        text-black font-normal"
+        onClick={reSetshoeFor}
+      >
+        {" "}
+        Reset{" "}
+      </button>
+    </div>
+  );
 }

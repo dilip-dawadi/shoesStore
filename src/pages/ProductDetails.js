@@ -1,42 +1,42 @@
-import React, { useEffect } from "react";
-//  useParams
+import React from "react";
 import { useParams } from "react-router-dom";
-// import link
 import { Link } from "react-router-dom";
-import { useDispatch, useSelector } from "react-redux";
-import {
-  getShoeById,
-  getShoeByIdOnPageLoad,
-} from "../statemanagement/slice/ShoeSlice/index";
-import { decodeToken } from "react-jwt";
-import {
-  addCarts,
-  CartisOpen,
-  checkoutAct,
-} from "../statemanagement/slice/cartSlice";
+import { useProduct } from "../hooks/useProducts";
+import { useAddToCart } from "../hooks/useCart";
 import { LoadingSinglePage } from "../toastify";
 
 const ProductDetails = () => {
   const { id } = useParams();
   const token = localStorage.getItem("authenticate");
-  const decodeData = decodeToken(token);
-  const dispatch = useDispatch();
-  const addToCart = async ({ product, shoeId }) => {
-    await dispatch(addCarts({ product, shoeId }));
-    await dispatch(CartisOpen(true));
-  };
-  useEffect(() => {
-    dispatch(getShoeById(id));
-    dispatch(getShoeByIdOnPageLoad(id));
-  }, [id, dispatch]);
-  async function CheckoutBtn(data) {
-    await dispatch(
-      addCarts({ product: data, shoeId: data?._id, notification: false })
-    );
-    await dispatch(checkoutAct(data?.price));
+  let decodeData = null;
+
+  try {
+    if (token) {
+      decodeData = JSON.parse(atob(token.split(".")[1]));
+    }
+  } catch (error) {
+    console.error("Token decode error:", error);
   }
-  const { singleShoeData, loading } = useSelector((state) => state.shoeDetails);
-  if (loading || !singleShoeData) return <LoadingSinglePage />;
+
+  const { data: singleShoeData, isLoading } = useProduct(id);
+  const { mutate: addToCart } = useAddToCart();
+
+  const handleAddToCart = () => {
+    addToCart({
+      productId: id,
+      quantity: 1,
+      size: singleShoeData?.sizes?.[0],
+      color: singleShoeData?.colors?.[0],
+    });
+  };
+
+  const handleCheckout = () => {
+    handleAddToCart();
+    // Navigate to checkout or open cart
+    window.location.href = "/checkout";
+  };
+
+  if (isLoading || !singleShoeData) return <LoadingSinglePage />;
   return (
     <div className="container mx-auto min-h-[600px] mt-4">
       <div className="text-2xl font-semibold items-center justify-between gap-x-2 flex">
@@ -56,14 +56,14 @@ const ProductDetails = () => {
               })
               .splice(0, 1)}
           </div>
-          <div className="bg-rose-500 rounded-full text-white px-3 py-2 ml-1 inline-block">
+          <div className="bg-primary rounded-full text-white px-3 py-2 ml-1 inline-block">
             Available: {singleShoeData?.quantity}
           </div>
-          <div className="text-2xl font-semibold text-rose-600 ml-10">
+          <div className="text-2xl font-semibold text-primary-900 ml-10">
             Rs.{singleShoeData?.price}
           </div>
         </div>
-        <div className="text-2xl font-semibold text-rose-600 inline-block sm:hidden">
+        <div className="text-2xl font-semibold text-primary-900 inline-block sm:hidden">
           Rs.{singleShoeData?.price}
         </div>
       </div>
@@ -82,7 +82,7 @@ const ProductDetails = () => {
             })
             .splice(0, 1)}
         </div>
-        <div className="bg-rose-500 rounded-full text-white px-3 py-2 ml-1 inline-block">
+        <div className="bg-primary rounded-full text-white px-3 py-2 ml-1 inline-block">
           Available: {singleShoeData?.quantity}
         </div>
       </div>
@@ -104,7 +104,7 @@ const ProductDetails = () => {
             </div>
             <div>
               <div className="font-bold text-lg ">{singleShoeData?.title}</div>
-              <Link to="" className="text-rose-700 text-sm">
+              <Link to="" className="text-primary-700 text-sm">
                 Order Now
               </Link>
             </div>
@@ -114,25 +114,25 @@ const ProductDetails = () => {
             onSubmit={(e) => e.preventDefault()}
           >
             <input
-              className="border border-gray-300 focus:border-rose-700 rounded w-full px-4 h-14 text-sm outline-none"
+              className="border border-secondary-300 focus:border-primary rounded w-full px-4 h-14 text-sm outline-none"
               type="text"
               defaultValue={decodeData?.name || ""}
               placeholder="Name*"
             />
             <input
-              className="border border-gray-300 focus:border-rose-700 rounded w-full px-4 h-14 text-sm outline-none"
+              className="border border-secondary-300 focus:border-primary rounded w-full px-4 h-14 text-sm outline-none"
               type="text"
               placeholder="Email*"
               defaultValue={decodeData?.email || ""}
             />
             <input
-              className="border border-gray-300 focus:border-rose-700 rounded w-full px-4 h-14 text-sm outline-none"
+              className="border border-secondary-300 focus:border-primary rounded w-full px-4 h-14 text-sm outline-none"
               type="text"
               placeholder="Phone*"
               defaultValue={decodeData?.number || ""}
             />
             <textarea
-              className="border border-gray-300 focus:border-rose-700 rounded w-full p-4 h-[5.5rem] text-sm text-gray-400 outline-none resize-none"
+              className="border border-secondary-300 focus:border-primary rounded w-full p-4 h-[5.5rem] text-sm text-secondary-400 outline-none resize-none"
               type="text"
               placeholder="Message*"
               defaultValue="Hello, I am interested to buy this product. Please contact me."
@@ -140,14 +140,14 @@ const ProductDetails = () => {
           </form>
           <div className="flex gap-x-2 mt-4">
             <button
-              className="bg-rose-700 hover:bg-rose-800 text-white rounded p-4 text-sm w-full transition"
-              onClick={() => CheckoutBtn(singleShoeData)}
+              className="bg-primary hover:bg-primary-900 text-white rounded p-4 text-sm w-full transition"
+              onClick={handleCheckout}
             >
               Order Now
             </button>
             <button
-              className="border border-rose-700 text-rose-700 hover:border-rose-900 hover:text-rose-900 rounded p-4 text-sm w-full transition"
-              onClick={() => addToCart({ product: singleShoeData, shoeId: id })}
+              className="border border-primary text-primary hover:border-primary-900 hover:text-primary-900 rounded p-4 text-sm w-full transition"
+              onClick={handleAddToCart}
             >
               Add to Cart
             </button>

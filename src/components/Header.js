@@ -2,65 +2,81 @@ import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Auth from "./Model/AuthModel";
 import { Popover, Transition } from "@headlessui/react";
-import { useDispatch } from "react-redux";
+import { useLogout } from "../hooks/useAuth";
+import { useAuth } from "../context/AuthContext";
+import { Button } from "./ui/button";
+import { Badge } from "./ui/badge";
 // react icons
 import { IoIosArrowDown } from "react-icons/io";
 import { BiLogOutCircle } from "react-icons/bi";
+import { FiUser, FiShield } from "react-icons/fi";
 import { Fragment } from "react";
-import { logoutUser } from "../statemanagement/slice/AuthenticationSlice";
 import AddProduct from "./Model/addProduct";
-import { decodeToken } from "react-jwt";
 import Cart from "./cart";
+
 export const Header = () => {
   const [IsSignup, setIsSignup] = React.useState(true);
-  const dispatch = useDispatch();
   const navigate = useNavigate();
-  const token = localStorage.getItem("authenticate");
-  const decodeData = decodeToken(token);
+  const { user, isAuthenticated, isAdmin, logout: contextLogout } = useAuth();
+  const { mutate: logoutMutation } = useLogout();
+
   const handleLogout = () => {
-    dispatch(logoutUser({ navigate }));
+    logoutMutation(undefined, {
+      onSettled: () => {
+        contextLogout();
+      },
+    });
   };
   return (
-    <header className="py-3 mb-0 border-b">
+    <header className="py-3 mb-0 border-b bg-background">
       <div className="container mx-auto flex justify-between items-center">
         <Link
           to="/"
-          className="
-        text-3xl font-bold text-rose-500 first-letter:uppercase 
-        hover:text-rose-600 transition duration-400 ease-in-out hover:scale-105 transform"
+          className="text-3xl font-bold text-primary first-letter:uppercase hover:text-primary/90 transition duration-400 ease-in-out hover:scale-105 transform"
         >
           shoe Store
         </Link>
         <nav className="hidden md:flex gap-x-4">
           <Link
             to="/"
-            className="text-md font-medium text-[#000] hover:text-[#ff2554] transition duration-400 ease-in-out"
+            className="text-md font-medium text-foreground hover:text-primary transition duration-400 ease-in-out"
           >
             Home
           </Link>
           <Link
             to="/products"
-            className="ml-6 text-md font-medium text-[#000] hover:text-[#ff2554] transition duration-400 ease-in-out"
+            className="ml-6 text-md font-medium text-foreground hover:text-primary transition duration-400 ease-in-out"
           >
             Products
           </Link>
           <Link
             to="/wishlist"
-            className="ml-6 text-md font-medium text-[#000] hover:text-[#ff2554] transition duration-400 ease-in-out"
+            className="ml-6 text-md font-medium text-foreground hover:text-primary transition duration-400 ease-in-out"
           >
             Wishlist
           </Link>
+          {isAuthenticated && (
+            <>
+              <Link
+                to="/orders"
+                className="ml-6 text-md font-medium text-foreground hover:text-primary transition duration-400 ease-in-out"
+              >
+                Orders
+              </Link>
+              <Link
+                to="/profile"
+                className="ml-6 text-md font-medium text-foreground hover:text-primary transition duration-400 ease-in-out"
+              >
+                Profile
+              </Link>
+            </>
+          )}
         </nav>
         <div className="hidden md:flex items-center gap-6">
-          {!token ? (
+          {!isAuthenticated ? (
             <>
-              <button
-                className={
-                  !IsSignup
-                    ? "bg-[#FE3E69] hover:bg-[#ff2f5c] text-white px-4 py-3 rounded-lg transition duration-400 ease-in-out"
-                    : "hover:text-[#ff2f5c] transition duration-400 ease-in-out"
-                }
-                type="button"
+              <Button
+                variant={!IsSignup ? "default" : "ghost"}
                 onClick={() => {
                   setIsSignup(false);
                 }}
@@ -70,14 +86,9 @@ export const Header = () => {
                   setIsSignup={setIsSignup}
                   text={"Log in"}
                 />
-              </button>
-              <button
-                className={
-                  IsSignup
-                    ? "bg-[#FE3E69] hover:bg-[#ff2f5c] text-white px-4 py-3 rounded-lg transition duration-400 ease-in-out"
-                    : "hover:text-[#ff2f5c] transition duration-400 ease-in-out"
-                }
-                type="button"
+              </Button>
+              <Button
+                variant={IsSignup ? "default" : "ghost"}
                 onClick={() => {
                   setIsSignup(true);
                 }}
@@ -87,19 +98,50 @@ export const Header = () => {
                   setIsSignup={setIsSignup}
                   text={"Sign up"}
                 />
-              </button>
+              </Button>
             </>
           ) : (
             <>
-              {decodeData?.role === true && <AddProduct />}
+              {isAdmin && (
+                <Button
+                  onClick={() => navigate("/admin/products/add")}
+                  className="gap-2 shadow-md"
+                  size="default"
+                >
+                  <FiShield size={16} />
+                  <span>Add Product</span>
+                </Button>
+              )}
               <Cart />
-              <p
-                className="bg-[#FE3E69] hover:bg-[#ff2f5c] fixed right-0 bottom-0 mr-7 mb-7 z-50 rounded-full p-2 text-white text-2xl cursor-pointer hover:scale-110 hover:animate-pulse transition-transform duration-300 ease-in-out"
-                type="button"
-                onClick={handleLogout}
-              >
-                <BiLogOutCircle title="Logout" />
-              </p>
+              <div className="flex items-center gap-3 bg-muted rounded-lg px-4 py-2">
+                {user && (
+                  <div className="flex items-center gap-2">
+                    {isAdmin && (
+                      <Badge
+                        variant="default"
+                        className="uppercase tracking-wide"
+                      >
+                        Admin
+                      </Badge>
+                    )}
+                    <div className="flex items-center gap-2 text-sm">
+                      <FiUser className="text-muted-foreground" size={16} />
+                      <span className="font-medium text-foreground">
+                        {user.name || user.email}
+                      </span>
+                    </div>
+                  </div>
+                )}
+                <Button
+                  variant="default"
+                  size="icon"
+                  className="rounded-full"
+                  onClick={handleLogout}
+                  title="Logout"
+                >
+                  <BiLogOutCircle size={20} />
+                </Button>
+              </div>
             </>
           )}
         </div>
@@ -107,9 +149,10 @@ export const Header = () => {
           <PopoverFunction
             IsSignup={IsSignup}
             setIsSignup={setIsSignup}
-            token={token}
+            isAuthenticated={isAuthenticated}
             handleLogout={handleLogout}
-            decodeData={decodeData}
+            user={user}
+            isAdmin={isAdmin}
           />
         </div>
       </div>
@@ -130,14 +173,27 @@ const Options = [
     href: "/wishlist",
     icon: IconTwo,
   },
+  {
+    name: "Orders",
+    description: "Track and manage your orders.",
+    href: "/orders",
+    icon: IconOne,
+  },
+  {
+    name: "Profile",
+    description: "Manage your account settings.",
+    href: "/profile",
+    icon: IconTwo,
+  },
 ];
 
 export default function PopoverFunction({
   IsSignup,
   setIsSignup,
   handleLogout,
-  token,
-  decodeData,
+  isAuthenticated,
+  user,
+  isAdmin,
 }) {
   const [open, setOpen] = React.useState(false);
   function openModalDropDown() {
@@ -153,7 +209,7 @@ export default function PopoverFunction({
           onClick={openModalDropDown}
           className={`
                 text-opacity-100
-                group inline-flex items-center text-base font-medium text-white hover:text-opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75 bg-[#FE3E69] hover:bg-[#ff2f5c]  px-4 py-3 rounded-lg transition duration-400 ease-in-out cursor-pointer`}
+                group inline-flex items-center text-base font-medium text-white hover:text-opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75 bg-primary hover:bg-primary-900  px-4 py-3 rounded-lg transition duration-400 ease-in-out cursor-pointer`}
         >
           <span>Menu</span>
           <IoIosArrowDown
@@ -183,7 +239,7 @@ export default function PopoverFunction({
                   <Link
                     key={item.name}
                     to={item.href}
-                    className="-m-3 flex items-center rounded-lg p-2 transition duration-150 ease-in-out hover:bg-gray-50 focus:outline-none focus-visible:ring focus-visible:ring-rose-600 focus-visible:ring-opacity-50"
+                    className="-m-3 flex items-center rounded-lg p-2 transition duration-150 ease-in-out hover:bg-gray-50 focus:outline-none focus-visible:ring focus-visible:ring-primary-600 focus-visible:ring-opacity-50"
                     onClick={closeModalDropDown}
                   >
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center text-white sm:h-12 sm:w-12">
@@ -199,13 +255,13 @@ export default function PopoverFunction({
                     </div>
                   </Link>
                 ))}
-                {!token ? (
+                {!isAuthenticated ? (
                   <div className="flex items-center justify-between">
                     <button
                       className={
                         !IsSignup
-                          ? "bg-[#FE3E69] hover:bg-[#ff2f5c] text-white px-4 py-3 rounded-lg transition duration-400 ease-in-out"
-                          : "hover:text-[rgb(255,47,92)] transition duration-400 ease-in-out"
+                          ? "bg-primary hover:bg-primary-900 text-white px-4 py-3 rounded-lg transition duration-400 ease-in-out"
+                          : "hover:text-primary transition duration-400 ease-in-out"
                       }
                       type="button"
                       onClick={() => {
@@ -222,8 +278,8 @@ export default function PopoverFunction({
                     <button
                       className={
                         IsSignup
-                          ? "bg-[#FE3E69] hover:bg-[#ff2f5c] text-white px-4 py-3 rounded-lg transition duration-400 ease-in-out"
-                          : "hover:text-[#ff2f5c] transition duration-400 ease-in-out"
+                          ? "bg-primary hover:bg-primary-900 text-white px-4 py-3 rounded-lg transition duration-400 ease-in-out"
+                          : "hover:text-primary transition duration-400 ease-in-out"
                       }
                       type="button"
                       onClick={() => {
@@ -239,23 +295,38 @@ export default function PopoverFunction({
                     </button>
                   </div>
                 ) : (
-                  <div className="flex items-center justify-around">
-                    <Cart />
-                    {decodeData?.role === true && <AddProduct />}
-                    <button
-                      className="bg-[#FE3E69] hover:bg-[#ff2f5c] rounded-full p-2 text-white text-2xl cursor-pointer hover:scale-110 hover:animate-pulse transition-transform duration-300 ease-in-out"
-                      type="button"
-                      onClick={handleLogout}
-                    >
-                      <BiLogOutCircle title="Logout" />
-                    </button>
+                  <div className="flex flex-col items-center gap-4 p-4 border-t border-gray-200">
+                    {user && (
+                      <div className="flex items-center gap-2 w-full justify-center">
+                        {isAdmin && (
+                          <span className="bg-primary text-white px-2 py-1 rounded text-xs font-bold uppercase">
+                            Admin
+                          </span>
+                        )}
+                        <span className="text-sm font-medium text-gray-700">
+                          {user.name || user.email}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-4">
+                      <Cart />
+                      {isAdmin && <AddProduct />}
+                      <button
+                        className="bg-primary hover:bg-primary-900 rounded-full p-2 text-white text-xl cursor-pointer hover:scale-110 transition-all duration-300"
+                        type="button"
+                        onClick={handleLogout}
+                        title="Logout"
+                      >
+                        <BiLogOutCircle />
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
               <div className="bg-gray-50 p-2">
                 <a
                   href="##"
-                  className="flow-root rounded-md px-3 py-0 transition duration-150 ease-in-out hover:bg-gray-100 focus:outline-none focus-visible:ring focus-visible:ring-rose-600 focus-visible:ring-opacity-50"
+                  className="flow-root rounded-md px-3 py-0 transition duration-150 ease-in-out hover:bg-gray-100 focus:outline-none focus-visible:ring focus-visible:ring-primary-600 focus-visible:ring-opacity-50"
                 >
                   <span className="flex items-center">
                     <span className="text-sm font-medium text-gray-900">
@@ -285,7 +356,7 @@ function IconOne() {
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <rect width="48" height="48" rx="8" fill="#fe2856" />
+      <rect width="48" height="48" rx="8" fill="#1f2937" />
       <path d="M24 24L24 24L24 24Z" fill="white" />
       <path d="M24 24H16V16H24V24Z" fill="white" />
       <path d="M24 24H32V16H24V24Z" fill="white" />
@@ -304,7 +375,7 @@ function IconTwo() {
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <rect width="48" height="48" rx="8" fill="#fe2856" />
+      <rect width="48" height="48" rx="8" fill="#1f2937" />
       <path
         d="M28.0413 20L23.9998 13L19.9585 20M32.0828 27.0001L36.1242 34H28.0415M19.9585 34H11.8755L15.9171 27"
         stroke="#fff"

@@ -1,12 +1,9 @@
 import { Dialog, Transition } from "@headlessui/react";
 import React, { Fragment } from "react";
 import { useNavigate } from "react-router-dom";
-import { useDispatch } from "react-redux";
-import {
-  loginaUser,
-  registeraUser,
-} from "../../statemanagement/slice/AuthenticationSlice";
-import { NotifyInfo } from "../../toastify";
+import { useLogin, useRegister } from "../../hooks/useAuth";
+import { NotifyInfo, NotifySuccess } from "../../toastify";
+
 export default function Auth({
   IsSignup,
   setIsSignup,
@@ -16,7 +13,9 @@ export default function Auth({
   const [isOpen, setIsOpen] = React.useState(false);
   const [checkbox, setCheckbox] = React.useState(false);
   const navigate = useNavigate();
-  const dispatch = useDispatch();
+  const { mutate: login } = useLogin();
+  const { mutate: register } = useRegister();
+
   const [authData, setAuthData] = React.useState({
     email: "",
     firstName: "",
@@ -26,32 +25,52 @@ export default function Auth({
     address: "",
     number: "",
   });
+
   function closeModal() {
     setIsOpen(false);
     window.innerWidth < 768 && closeModalDropDown();
   }
+
   function openModal() {
     setIsOpen(true);
   }
+
   const handleSubmit = (e) => {
     e.preventDefault();
+
     if (IsSignup) {
       if (checkbox === false) {
         return NotifyInfo("Please accept the terms and conditions");
       }
-    }
-    if (IsSignup) {
       if (authData.password !== authData.confirmPassword) {
-        NotifyInfo("Password and Confirm Password must be same");
+        return NotifyInfo("Password and Confirm Password must be same");
       }
-      return dispatch(
-        registeraUser({ authData, navigate, closeModal, closeModalDropDown })
-      );
+
+      register(authData, {
+        onSuccess: () => {
+          NotifySuccess("Registration successful! Please verify your email.");
+          closeModal();
+          closeModalDropDown && closeModalDropDown();
+        },
+        onError: (error) => {
+          NotifyInfo(error.response?.data?.message || "Registration failed");
+        },
+      });
+    } else {
+      login(authData, {
+        onSuccess: () => {
+          NotifySuccess("Login successful!");
+          closeModal();
+          closeModalDropDown && closeModalDropDown();
+          navigate("/");
+        },
+        onError: (error) => {
+          NotifyInfo(error.response?.data?.message || "Login failed");
+        },
+      });
     }
-    dispatch(
-      loginaUser({ authData, navigate, closeModal, closeModalDropDown })
-    );
   };
+
   const handleChange = (e) => {
     setAuthData({ ...authData, [e.target.name]: e.target.value });
   };
@@ -205,7 +224,7 @@ export default function Auth({
                         id="terms-and-privacy"
                         name="terms-and-privacy"
                         type="checkbox"
-                        className="h-4 w-4 text-rose-600 focus:ring-rose-500 border-gray-300 rounded"
+                        className="h-4 w-4 text-primary focus:ring-primary-500 border-gray-300 rounded"
                         checked={checkbox}
                         onChange={() => setCheckbox(!checkbox)}
                       />
@@ -216,7 +235,7 @@ export default function Auth({
                         I agree to the
                         <a
                           href="/"
-                          className="text-rose-600 hover:text-rose-500"
+                          className="text-primary hover:text-primary-600"
                         >
                           {" "}
                           Terms{" "}
@@ -224,7 +243,7 @@ export default function Auth({
                         and
                         <a
                           href="/"
-                          className="text-rose-600 hover:text-rose-500"
+                          className="text-primary hover:text-primary-600"
                         >
                           {" "}
                           Privacy Policy{" "}
@@ -235,7 +254,7 @@ export default function Auth({
 
                     <div>
                       <button
-                        className="w-1/2 inline-block mr-1 text-rose-800"
+                        className="w-1/2 inline-block mr-1 text-primary"
                         type="button"
                         onClick={() => {
                           setIsSignup(!IsSignup);
@@ -245,7 +264,7 @@ export default function Auth({
                       </button>
                       <button
                         type="submit"
-                        className="w-[48%] inline-block justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#fe2856] hover:bg-[#bc052c] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#fe2856]"
+                        className="w-[48%] inline-block justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-700"
                       >
                         {IsSignup ? "Sign Up" : "Log In"}
                       </button>

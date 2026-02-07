@@ -1,21 +1,32 @@
-import React from 'react';
-import ProductList from '../components/ProductList';
-import { useDispatch, useSelector } from 'react-redux';
-import Search from '../components/filterProduct/Search';
-import { getAllWishList } from '../statemanagement/slice/WishList';
+import React from "react";
+import ProductList from "../components/ProductList";
+import { useWishlist } from "../hooks/useWishlist";
+import Search from "../components/filterProduct/Search";
+
 const Wishlist = () => {
-    const dispatch = useDispatch();
-    const { wishListData, loading, error } = useSelector((state) => state.wishList);
-    const { page, limit, sort, brand, category, price } = useSelector((state) => state.filterShoes);
-    React.useEffect(() => {
-        dispatch(getAllWishList({ page, limit, sort, brand, category, price }));
-    }, [dispatch, page, limit, sort, brand, category, price]);
-    return (
-        <div className='min-h-[600px] mt-10'>
-            <Search brandValue={brand} categoryValue={category} priceValue={price} pageValue={page} loading={loading} />
-            <ProductList data={wishListData} loading={loading} error={error} title='WishList' limit={8} />
-        </div>
-    );
+  const [filters, setFilters] = React.useState({
+    page: 1,
+    limit: 8,
+    sort: "",
+    brand: "",
+    category: "",
+    price: "",
+  });
+
+  const { data, isLoading, error } = useWishlist();
+
+  return (
+    <div className="min-h-[600px] mt-10">
+      <Search filters={filters} setFilters={setFilters} loading={isLoading} />
+      <ProductList
+        data={data?.items || []}
+        loading={isLoading}
+        error={error?.message}
+        title="WishList"
+        limit={8}
+      />
+    </div>
+  );
 };
 
 export default Wishlist;
