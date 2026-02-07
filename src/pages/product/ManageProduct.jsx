@@ -1,23 +1,26 @@
-import React, { useState } from "react";
-import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useAuth } from "../../context/AuthContext";
+import { useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import axios from "../lib/axios";
+import axios from "../../lib/axios";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from "../components/ui/card";
-import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
-import { Label } from "../components/ui/label";
+} from "../../components/ui/card";
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { Label } from "../../components/ui/label";
 import { ArrowLeft, Upload, X } from "lucide-react";
-import { NotifySuccess, NotifyError, NotifyWarning } from "../toastify";
+import { NotifySuccess, NotifyError, NotifyWarning } from "../../toastify";
+import { useProduct } from "../../hooks/useProducts";
 
-const AddProduct = () => {
+const ManageProduct = () => {
   const { isAdmin, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const { id } = useParams();
+  const isEditMode = Boolean(id);
   const queryClient = useQueryClient();
 
   const [formData, setFormData] = useState({
@@ -35,6 +38,35 @@ const AddProduct = () => {
 
   const [imageUrls, setImageUrls] = useState([]);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
+
+  const { data: productData } = useProduct(id);
+  const product = productData?.data || productData;
+
+  useEffect(() => {
+    if (!isEditMode || !product) return;
+    const toArray = (value) =>
+      Array.isArray(value)
+        ? value
+        : typeof value === "string"
+          ? value.split(",").map((v) => v.trim())
+          : [];
+
+    const images = product.images || product.selectedFile || [];
+    setImageUrls(images);
+    setFormData((prev) => ({
+      ...prev,
+      title: product.title || product.name || "",
+      name: product.name || product.title || "",
+      description: product.description || "",
+      price: product.price || "",
+      brand: product.brand || "",
+      category: toArray(product.category),
+      shoeFor: toArray(product.shoeFor),
+      stock: String(product.stock ?? product.quantity ?? ""),
+      quantity: String(product.quantity ?? product.stock ?? ""),
+      images,
+    }));
+  }, [isEditMode, product]);
 
   React.useEffect(() => {
     if (!isAuthenticated) {
@@ -56,6 +88,22 @@ const AddProduct = () => {
     },
     onError: (error) => {
       NotifyError(error.response?.data?.message || "Failed to create product");
+    },
+  });
+
+  const updateProductMutation = useMutation({
+    mutationFn: async (productData) => {
+      const { data } = await axios.put(`/products/${id}`, productData);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(["admin-products"]);
+      queryClient.invalidateQueries(["product", id]);
+      NotifySuccess("Product updated successfully!");
+      navigate("/admin/products");
+    },
+    onError: (error) => {
+      NotifyError(error.response?.data?.message || "Failed to update product");
     },
   });
 
@@ -139,7 +187,11 @@ const AddProduct = () => {
       images: formData.images,
     };
 
-    createProductMutation.mutate(productData);
+    if (isEditMode) {
+      updateProductMutation.mutate(productData);
+    } else {
+      createProductMutation.mutate(productData);
+    }
   };
 
   if (!isAdmin) return null;
@@ -157,10 +209,12 @@ const AddProduct = () => {
           Back to Products
         </Button>
         <h1 className="text-3xl font-bold text-foreground mb-2">
-          Add New Product
+          {isEditMode ? "Edit Product" : "Add New Product"}
         </h1>
         <p className="text-muted-foreground">
-          Fill in the details to create a new product
+          {isEditMode
+            ? "Update the product details"
+            : "Fill in the details to create a new product"}
         </p>
       </div>
 
@@ -351,18 +405,28 @@ const AddProduct = () => {
             <div className="flex gap-4 pt-4">
               <Button
                 type="submit"
-                disabled={createProductMutation.isPending}
+                disabled={
+                  createProductMutation.isPending ||
+                  updateProductMutation.isPending
+                }
                 className="flex-1"
               >
-                {createProductMutation.isPending
-                  ? "Creating..."
-                  : "Create Product"}
+                {isEditMode
+                  ? updateProductMutation.isPending
+                    ? "Saving..."
+                    : "Save Changes"
+                  : createProductMutation.isPending
+                    ? "Creating..."
+                    : "Create Product"}
               </Button>
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => navigate("/admin/products")}
-                disabled={createProductMutation.isPending}
+                disabled={
+                  createProductMutation.isPending ||
+                  updateProductMutation.isPending
+                }
               >
                 Cancel
               </Button>
@@ -374,4 +438,4 @@ const AddProduct = () => {
   );
 };
 
-export default AddProduct;
+export default ManageProduct;

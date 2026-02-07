@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useProduct } from "../hooks/useProducts";
-import { useAddToCart } from "../hooks/useCart";
-import { LoadingSinglePage, NotifyError, NotifySuccess } from "../toastify";
-import { Button } from "../components/ui/button";
+import { useProduct } from "../../hooks/useProducts";
+import { useAddToCart } from "../../hooks/useCart";
+import { LoadingSinglePage, NotifyError, NotifySuccess } from "../../toastify";
+import { Button } from "../../components/ui/button";
 
 const ProductDetails = () => {
   const { id } = useParams();

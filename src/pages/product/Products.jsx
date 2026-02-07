@@ -1,18 +1,18 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { useProducts } from "../hooks/useProducts";
-import AdvancedFilters from "../components/filterProduct/AdvancedFilters";
+import { useProducts } from "../../hooks/useProducts";
+import AdvancedFilters from "../../components/filterProduct/AdvancedFilters";
 import { FiGrid, FiList, FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { AiOutlineHeart, AiFillHeart } from "react-icons/ai";
 import { HiShoppingCart } from "react-icons/hi";
 import { useNavigate } from "react-router-dom";
-import { useAddToCart } from "../hooks/useCart";
+import { useAddToCart } from "../../hooks/useCart";
 import {
   useWishlist,
   useAddToWishlist,
   useRemoveFromWishlist,
-} from "../hooks/useWishlist";
-import { NotifySuccess, NotifyError } from "../toastify";
+} from "../../hooks/useWishlist";
+import { NotifySuccess, NotifyError } from "../../toastify";
 
 function Products() {
   const navigate = useNavigate();

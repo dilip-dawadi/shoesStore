@@ -1,27 +1,25 @@
 import React, { useState } from "react";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import axios from "../lib/axios";
+import axios from "../../lib/axios";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from "../components/ui/card";
-import { Button } from "../components/ui/button";
-import { Badge } from "../components/ui/badge";
-import { Input } from "../components/ui/input";
-import { Label } from "../components/ui/label";
+} from "../../components/ui/card";
+import { Button } from "../../components/ui/button";
+import { Badge } from "../../components/ui/badge";
+import { Input } from "../../components/ui/input";
 import { Package, Edit, Trash2, Plus, ArrowLeft, Search } from "lucide-react";
-import { NotifySuccess, NotifyError } from "../toastify";
+import { NotifySuccess, NotifyError } from "../../toastify";
 
 const ManageProducts = () => {
   const { isAdmin, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedProduct, setSelectedProduct] = useState(null);
 
   React.useEffect(() => {
     if (!isAuthenticated) {
@@ -35,7 +33,7 @@ const ManageProducts = () => {
     queryKey: ["admin-products"],
     queryFn: async () => {
       const { data } = await axios.get("/products");
-      return data.products || [];
+      return data.data || data.products || [];
     },
     enabled: isAdmin,
   });

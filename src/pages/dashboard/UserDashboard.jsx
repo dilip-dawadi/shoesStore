@@ -1,15 +1,15 @@
 import React from "react";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import axios from "../lib/axios";
+import axios from "../../lib/axios";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from "../components/ui/card";
-import { Button } from "../components/ui/button";
+} from "../../components/ui/card";
+import { Button } from "../../components/ui/button";
 import { User, ShoppingBag, Heart, Package } from "lucide-react";
 
 const UserDashboard = () => {

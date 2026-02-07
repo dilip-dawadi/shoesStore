@@ -1,17 +1,17 @@
 import React, { useState } from "react";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import axios from "../lib/axios";
+import axios from "../../lib/axios";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from "../components/ui/card";
-import { Button } from "../components/ui/button";
-import { Badge } from "../components/ui/badge";
-import { Input } from "../components/ui/input";
+} from "../../components/ui/card";
+import { Button } from "../../components/ui/button";
+import { Badge } from "../../components/ui/badge";
+import { Input } from "../../components/ui/input";
 import {
   Users,
   ArrowLeft,
@@ -23,7 +23,7 @@ import {
   CheckCircle,
   XCircle,
 } from "lucide-react";
-import { NotifySuccess, NotifyError } from "../toastify";
+import { NotifySuccess, NotifyError } from "../../toastify";
 
 const ManageUsers = () => {
   const { isAdmin, isAuthenticated } = useAuth();

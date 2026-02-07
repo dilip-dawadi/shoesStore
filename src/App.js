@@ -8,20 +8,20 @@ import PageNotFound from "./components/PageNotFound";
 
 // import pages
 import Home from "./pages/Home";
-import Products from "./pages/Products";
+import Products from "./pages/product/Products";
 import Wishlist from "./pages/wishlist";
-import ProductDetails from "./pages/ProductDetails";
+import ProductDetails from "./pages/product/ProductDetails";
 import UserVerification from "./pages/UserEmailVerification";
 import Checkout from "./pages/Checkout";
 import CartPage from "./pages/Cart";
 import Orders from "./pages/Orders";
 import Profile from "./pages/Profile";
-import AdminDashboard from "./pages/AdminDashboard";
-import UserDashboard from "./pages/UserDashboard";
-import ManageProducts from "./pages/ManageProducts";
-import ManageOrders from "./pages/ManageOrders";
-import ManageUsers from "./pages/ManageUsers";
-import AddProduct from "./pages/AddProduct";
+import AdminDashboard from "./pages/dashboard/AdminDashboard";
+import UserDashboard from "./pages/dashboard/UserDashboard";
+import ManageProducts from "./pages/dashboard/ManageProducts";
+import ManageOrders from "./pages/dashboard/ManageOrders";
+import ManageUsers from "./pages/dashboard/ManageUsers";
+import AddProduct from "./pages/product/ManageProduct";
 import { NotifyInfo } from "./toastify";
 import Cart from "./components/cart";
 
@@ -80,6 +80,7 @@ const AppContent = () => {
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/products" element={<ManageProducts />} />
           <Route path="/admin/products/add" element={<AddProduct />} />
+          <Route path="/admin/products/edit/:id" element={<AddProduct />} />
           <Route path="/admin/orders" element={<ManageOrders />} />
           <Route path="/admin/users" element={<ManageUsers />} />
           <Route path="/dashboard" element={<UserDashboard />} />
