@@ -57,14 +57,15 @@ export function MultiSelect({
             `w-full h-[54px] rounded-lg font-medium text-sm justify-between`,
             error?.message
               ? "text-destructive border-destructive"
-              : "text-foreground border-border"
+              : "text-foreground border-border",
           )}
           type="button"
         >
           <div
             className={cn(
               isDialogMultiSearchableSelect
-                ? error || (form.watch(nameInSchema) && form.watch(nameInSchema).length)
+                ? error ||
+                  (form.watch(nameInSchema) && form.watch(nameInSchema).length)
                   ? "opacity-100 pl-2"
                   : "opacity-50 pl-2"
                 : "opacity-100",
@@ -72,7 +73,7 @@ export function MultiSelect({
                 ? form.watch(nameInSchema) && form.watch(nameInSchema).length
                   ? "text-foreground"
                   : ""
-                : ""
+                : "",
             )}
           >
             {selectedValues.length > 0 ? (
@@ -111,7 +112,7 @@ export function MultiSelect({
           <ChevronsUpDown
             className={cn(
               "h-4 w-4 opacity-50",
-              isDialogMultiSearchableSelect ? "mr-1" : ""
+              isDialogMultiSearchableSelect ? "mr-1" : "",
             )}
           />
         </Button>
@@ -155,11 +156,11 @@ export function MultiSelect({
                   selectedValues.includes(o.id)
                     ? "bg-accent text-accent-foreground"
                     : !selectedValues.length && !hasInteracted && index === 0
-                    ? "bg-accent/50"
-                    : "hover:bg-accent/10",
+                      ? "bg-accent/50"
+                      : "hover:bg-accent/10",
                   !isMouseInside &&
                     !selectedValues.includes(o.id) &&
-                    "data-[selected=true]:bg-accent/10"
+                    "data-[selected=true]:bg-accent/10",
                 )}
               >
                 {o.label}

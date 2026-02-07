@@ -49,7 +49,7 @@ export function SearchableSelect({
   if (form) {
     error = form.getFieldState(nameInSchema, form.formState)?.error;
   }
-  
+
   const formatValue = (value) => {
     if (!value) return value;
 
@@ -85,7 +85,7 @@ export function SearchableSelect({
               ? "text-destructive border-destructive"
               : "text-foreground border-border",
             height,
-            !autoFocusSearch && "focus-visible:outline-none focus:outline-none"
+            !autoFocusSearch && "focus-visible:outline-none focus:outline-none",
           )}
           disabled={disabled}
           onMouseDown={(e) => {
@@ -112,7 +112,7 @@ export function SearchableSelect({
                 ? form && form.watch(nameInSchema)
                   ? "text-foreground"
                   : ""
-                : ""
+                : "",
             )}
           >
             {selectedOption ? formatValue(selectedOption.label) : placeholder}
@@ -120,7 +120,7 @@ export function SearchableSelect({
           <ChevronsUpDown
             className={cn(
               "h-4 w-4 opacity-50",
-              isDialogSearchableSelect ? "mr-1" : ""
+              isDialogSearchableSelect ? "mr-1" : "",
             )}
           />
         </Button>
@@ -164,11 +164,11 @@ export function SearchableSelect({
                     isSelected
                       ? "bg-accent text-accent-foreground"
                       : !value && !hasInteracted && index === 0
-                      ? "bg-accent/50"
-                      : "hover:bg-accent/10",
+                        ? "bg-accent/50"
+                        : "hover:bg-accent/10",
                     !isMouseInside &&
                       !isSelected &&
-                      "data-[selected=true]:bg-accent/10"
+                      "data-[selected=true]:bg-accent/10",
                   )}
                 >
                   {formatValue(o.label)}
