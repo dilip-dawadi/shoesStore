@@ -30,7 +30,7 @@
     "jwt-decode": "^4.0.0",
     "morgan": "^1.10.0",
     "multer": "^2.0.2",
-    "nodemailer": "^6.9.8",
+    "nodemailer": "^8.0.1",
     "postgres": "^3.4.3",
     "stripe": "^14.10.0"
   },
