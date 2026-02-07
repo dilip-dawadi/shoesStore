@@ -8,6 +8,20 @@
       "when": 1770433888641,
       "tag": "0000_opposite_sabretooth",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1770444970480,
+      "tag": "0001_living_george_stacy",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1770445075229,
+      "tag": "0002_premium_madelyne_pryor",
+      "breakpoints": true
     }
   ]
 }

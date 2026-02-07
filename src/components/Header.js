@@ -11,8 +11,6 @@ import { IoIosArrowDown } from "react-icons/io";
 import { BiLogOutCircle } from "react-icons/bi";
 import { FiUser, FiShield } from "react-icons/fi";
 import { Fragment } from "react";
-import AddProduct from "./Model/addProduct";
-import Cart from "./cart";
 
 export const Header = () => {
   const [IsSignup, setIsSignup] = React.useState(true);
@@ -28,7 +26,7 @@ export const Header = () => {
     });
   };
   return (
-    <header className="py-3 mb-0 border-b bg-background">
+    <header className="py-3 mb-0 border-b">
       <div className="container mx-auto flex justify-between items-center">
         <Link
           to="/"
@@ -104,42 +102,43 @@ export const Header = () => {
             <>
               {isAdmin && (
                 <Button
-                  onClick={() => navigate("/admin/products/add")}
-                  className="gap-2 shadow-md"
-                  size="default"
+                  onClick={() => navigate("/admin")}
+                  className="gap-2"
+                  size="sm"
+                  variant="outline"
                 >
                   <FiShield size={16} />
-                  <span>Add Product</span>
+                  <span className="hidden lg:inline">Admin</span>
                 </Button>
               )}
-              <Cart />
-              <div className="flex items-center gap-3 bg-muted rounded-lg px-4 py-2">
-                {user && (
-                  <div className="flex items-center gap-2">
-                    {isAdmin && (
-                      <Badge
-                        variant="default"
-                        className="uppercase tracking-wide"
-                      >
-                        Admin
-                      </Badge>
-                    )}
-                    <div className="flex items-center gap-2 text-sm">
-                      <FiUser className="text-muted-foreground" size={16} />
-                      <span className="font-medium text-foreground">
-                        {user.name || user.email}
-                      </span>
-                    </div>
-                  </div>
-                )}
+              {!isAdmin && (
                 <Button
-                  variant="default"
+                  onClick={() => navigate("/dashboard")}
+                  className="gap-2"
+                  size="sm"
+                  variant="outline"
+                >
+                  <FiUser size={16} />
+                  <span className="hidden lg:inline">Dashboard</span>
+                </Button>
+              )}
+              <div className="flex items-center gap-2">
+                {isAdmin && (
+                  <Badge variant="default" className="text-xs">
+                    Admin
+                  </Badge>
+                )}
+                <span className="hidden md:inline text-sm font-medium text-foreground">
+                  {user?.name || user?.email}
+                </span>
+                <Button
+                  variant="outline"
                   size="icon"
-                  className="rounded-full"
+                  className="h-9 w-9"
                   onClick={handleLogout}
                   title="Logout"
                 >
-                  <BiLogOutCircle size={20} />
+                  <BiLogOutCircle size={18} />
                 </Button>
               </div>
             </>
@@ -308,9 +307,33 @@ export default function PopoverFunction({
                         </span>
                       </div>
                     )}
+                    {isAdmin && (
+                      <Button
+                        onClick={() => {
+                          navigate("/admin");
+                          closeModalDropDown();
+                        }}
+                        className="w-full"
+                        variant="outline"
+                      >
+                        <FiShield className="mr-2" size={16} />
+                        Admin Dashboard
+                      </Button>
+                    )}
+                    {!isAdmin && (
+                      <Button
+                        onClick={() => {
+                          navigate("/dashboard");
+                          closeModalDropDown();
+                        }}
+                        className="w-full"
+                        variant="outline"
+                      >
+                        <FiUser className="mr-2" size={16} />
+                        My Dashboard
+                      </Button>
+                    )}
                     <div className="flex items-center gap-4">
-                      <Cart />
-                      {isAdmin && <AddProduct />}
                       <button
                         className="bg-primary hover:bg-primary-900 rounded-full p-2 text-white text-xl cursor-pointer hover:scale-110 transition-all duration-300"
                         type="button"

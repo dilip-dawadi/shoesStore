@@ -15,7 +15,15 @@ import UserVerification from "./pages/UserEmailVerification";
 import Checkout from "./pages/Checkout";
 import Orders from "./pages/Orders";
 import Profile from "./pages/Profile";
+import AdminDashboard from "./pages/AdminDashboard";
+import UserDashboard from "./pages/UserDashboard";
+import ManageProducts from "./pages/ManageProducts";
+import ManageOrders from "./pages/ManageOrders";
+import ManageUsers from "./pages/ManageUsers";
+import AddProduct from "./pages/AddProduct";
 import { NotifyInfo } from "./toastify";
+import { Car } from "lucide-react";
+import Cart from "./components/cart";
 
 const AppContent = () => {
   const navigate = useNavigate();
@@ -57,21 +65,29 @@ const AppContent = () => {
   }, [token, navigate]);
 
   return (
-    <div className="max-w-[1440px] mx-auto bg-white">
-      <Header />
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/product/:id" element={<ProductDetails />} />
-        <Route path="/products" element={<Products />} />
-        <Route path="/wishlist" element={<Wishlist />} />
-        <Route path="/checkout" element={<Checkout />} />
-        <Route path="/orders" element={<Orders />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/verify-email" element={<UserVerification />} />
-        <Route path="*" element={<PageNotFound />} />
-      </Routes>
-      <Footer />
-    </div>
+    <>
+      <div className="max-w-360 mx-auto bg-white relative">
+        <Header />
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/product/:id" element={<ProductDetails />} />
+          <Route path="/products" element={<Products />} />
+          <Route path="/wishlist" element={<Wishlist />} />
+          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/orders" element={<Orders />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin/products" element={<ManageProducts />} />
+          <Route path="/admin/orders" element={<ManageOrders />} />
+          <Route path="/admin/users" element={<ManageUsers />} />
+          <Route path="/dashboard" element={<UserDashboard />} />
+          <Route path="/verify-email" element={<UserVerification />} />
+          <Route path="*" element={<PageNotFound />} />
+        </Routes>
+        <Footer />
+      </div>
+      <Cart />
+    </>
   );
 };
 

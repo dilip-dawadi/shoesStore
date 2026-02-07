@@ -60,9 +60,7 @@ export default function Cart() {
       <Button
         variant="default"
         size="icon"
-        className={`${
-          size === "md" && "fixed right-0 top-3 mr-7"
-        } z-50 rounded-full hover:scale-110 transition-transform duration-300 ease-in-out relative`}
+        className={`fixed right-0 bottom-3 mr-7 z-50 rounded-full hover:scale-110 transition-transform duration-300 ease-in-out`}
         onClick={openModal}
       >
         <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs">

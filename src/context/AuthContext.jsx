@@ -15,6 +15,7 @@ export const AuthProvider = ({ children }) => {
         const storedToken = localStorage.getItem("token");
         const storedUser = localStorage.getItem("user");
 
+
         if (storedToken) {
           // Verify token is not expired
           const decoded = jwtDecode(storedToken);
@@ -26,15 +27,17 @@ export const AuthProvider = ({ children }) => {
           } else {
             setToken(storedToken);
             if (storedUser) {
-              setUser(JSON.parse(storedUser));
+              const parsedUser = JSON.parse(storedUser);
+              setUser(parsedUser);
             } else {
               // Decode user from token
-              setUser({
+              const userFromToken = {
                 id: decoded.id || decoded.userId,
                 email: decoded.email,
                 name: decoded.name,
-                isAdmin: decoded.isAdmin || false,
-              });
+                role: decoded.role || "user",
+              };
+              setUser(userFromToken);
             }
           }
         }
@@ -71,7 +74,11 @@ export const AuthProvider = ({ children }) => {
   };
 
   const isAuthenticated = !!token && !!user;
-  const isAdmin = user?.isAdmin === true;
+  const isAdmin = user?.role === "admin";
+  
+  console.log("AuthContext - user:", user);
+  console.log("AuthContext - isAdmin:", isAdmin);
+  console.log("AuthContext - user.role:", user?.role);
 
   const value = {
     user,

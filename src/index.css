@@ -1,6 +1,15 @@
 @import "tailwindcss";
+@source "../index.html";
+@source "./**/*.{js,jsx,ts,tsx}";
 
 @theme {
+  /* Custom breakpoints */
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1234px;
+  --breakpoint-2xl: 1400px;
+
   /* Primary: gray scale for main UI */
   --color-primary-50: #f9fafb;
   --color-primary-100: #f3f4f6;
@@ -29,46 +38,46 @@
   --color-secondary: #6b7280;
   --color-secondary-foreground: #ffffff;
 
-  /* Accent: blue for interactive elements */
-  --color-accent-50: #eff6ff;
-  --color-accent-100: #dbeafe;
-  --color-accent-200: #bfdbfe;
-  --color-accent-300: #93c5fd;
-  --color-accent-400: #60a5fa;
-  --color-accent-500: #3b82f6;
-  --color-accent-600: #2563eb;
-  --color-accent-700: #1d4ed8;
-  --color-accent-800: #1e40af;
-  --color-accent-900: #1e3a8a;
-  --color-accent: #3b82f6;
+  /* Accent: rose for interactive elements */
+  --color-accent-50: #fff1f2;
+  --color-accent-100: #ffe4e6;
+  --color-accent-200: #fecdd3;
+  --color-accent-300: #fda4af;
+  --color-accent-400: #fb7185;
+  --color-accent-500: #fe3e69;
+  --color-accent-600: #e11d48;
+  --color-accent-700: #be123c;
+  --color-accent-800: #9f1239;
+  --color-accent-900: #881337;
+  --color-accent: #fe3e69;
   --color-accent-foreground: #ffffff;
 
-  /* Destructive: red for errors/danger */
-  --color-destructive-50: #fef2f2;
-  --color-destructive-100: #fee2e2;
-  --color-destructive-200: #fecaca;
-  --color-destructive-300: #fca5a5;
-  --color-destructive-400: #f87171;
-  --color-destructive-500: #ef4444;
-  --color-destructive-600: #dc2626;
-  --color-destructive-700: #b91c1c;
-  --color-destructive-800: #991b1b;
-  --color-destructive-900: #7f1d1d;
-  --color-destructive: #ef4444;
+  /* Destructive: pink for errors/danger */
+  --color-destructive-50: #fdf2f8;
+  --color-destructive-100: #fce7f3;
+  --color-destructive-200: #fbcfe8;
+  --color-destructive-300: #f9a8d4;
+  --color-destructive-400: #f472b6;
+  --color-destructive-500: #ec4899;
+  --color-destructive-600: #db2777;
+  --color-destructive-700: #be185d;
+  --color-destructive-800: #9d174d;
+  --color-destructive-900: #831843;
+  --color-destructive: #ec4899;
   --color-destructive-foreground: #ffffff;
 
-  /* Semantic colors */
+  /* Semantic colors — static hex (NO hsl(var()) — @theme is build-time) */
   --color-background: #ffffff;
-  --color-foreground: #0f172a;
+  --color-foreground: #020817;
   --color-muted: #f1f5f9;
   --color-muted-foreground: #64748b;
   --color-border: #e2e8f0;
   --color-input: #e2e8f0;
   --color-ring: #1f2937;
   --color-card: #ffffff;
-  --color-card-foreground: #0f172a;
+  --color-card-foreground: #020817;
   --color-popover: #ffffff;
-  --color-popover-foreground: #0f172a;
+  --color-popover-foreground: #020817;
 
   /* Fonts */
   --font-primary: "Poppins", sans-serif;
@@ -80,188 +89,237 @@
   --radius-lg: 0.5rem;
 }
 
-/* Base reset */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  border-color: var(--color-border);
-}
+/*
+ * All base styles go inside @layer base so they DON'T override
+ * Tailwind utility classes (which live in @layer utilities).
+ * Unlayered CSS beats every @layer in the cascade — that was
+ * the root cause of padding / margin / color utilities not working.
+ */
+@layer base {
+  /* ── Base reset (keep box-sizing + border-color, skip margin/padding
+       since Tailwind v4 preflight already handles those) ── */
+  *,
+  ::before,
+  ::after {
+    box-sizing: border-box;
+    border-color: var(--color-border);
+  }
 
-body {
-  background-color: var(--color-background);
-  color: var(--color-foreground);
-  font-family: var(--font-primary);
-}
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-primary);
+  }
 
-/* Form input styles */
-[type="text"],
-[type="email"],
-[type="url"],
-[type="password"],
-[type="number"],
-[type="date"],
-[type="datetime-local"],
-[type="month"],
-[type="search"],
-[type="tel"],
-[type="time"],
-[type="week"],
-[multiple],
-textarea,
-select {
-  width: 100%;
-  border: 1px solid var(--color-secondary-300);
-  border-radius: 0.5rem;
-  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  padding: 0.5rem 0.75rem;
-  font-size: 0.875rem;
-}
-[type="text"]:focus,
-[type="email"]:focus,
-[type="url"]:focus,
-[type="password"]:focus,
-[type="number"]:focus,
-textarea:focus,
-select:focus {
-  border-color: var(--color-primary);
-  outline: 2px solid var(--color-primary);
-  outline-offset: 0;
-}
+  /* ── Container padding ── */
+  .container {
+    padding-inline: 1rem;
+  }
+  @media (min-width: 1024px) {
+    .container {
+      padding-inline: 2rem;
+    }
+  }
 
-[type="checkbox"],
-[type="radio"] {
-  border: 1px solid var(--color-secondary-300);
-  border-radius: 0.25rem;
-  color: var(--color-primary-900);
-}
-[type="checkbox"]:focus,
-[type="radio"]:focus {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
+  /* ── Form input styles (replaces @tailwindcss/forms) ── */
+  [type="text"],
+  [type="email"],
+  [type="url"],
+  [type="password"],
+  [type="number"],
+  [type="date"],
+  [type="datetime-local"],
+  [type="month"],
+  [type="search"],
+  [type="tel"],
+  [type="time"],
+  [type="week"],
+  [multiple],
+  textarea,
+  select {
+    width: 100%;
+    border: 1px solid var(--color-secondary-300);
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+  }
+  [type="text"]:focus,
+  [type="email"]:focus,
+  [type="url"]:focus,
+  [type="password"]:focus,
+  [type="number"]:focus,
+  [type="date"]:focus,
+  [type="search"]:focus,
+  [type="tel"]:focus,
+  textarea:focus,
+  select:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px var(--color-primary);
+    outline: none;
+  }
 
-/* Dropdown styles */
-.dropdown {
-  width: 100%;
-  cursor: pointer;
-}
-@media (min-width: 1024px) {
+  [type="checkbox"],
+  [type="radio"] {
+    width: 1rem;
+    height: 1rem;
+    border: 1px solid var(--color-secondary-300);
+    border-radius: 0.25rem;
+    color: var(--color-primary-900);
+    cursor: pointer;
+  }
+  [type="checkbox"]:focus,
+  [type="radio"]:focus {
+    box-shadow: 0 0 0 2px var(--color-primary);
+    outline: none;
+  }
+  [type="checkbox"]:checked,
+  [type="radio"]:checked {
+    background-color: var(--color-primary-900);
+    border-color: var(--color-primary-900);
+  }
+
+  [type="file"] {
+    width: 100%;
+    border: 1px solid var(--color-secondary-300);
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+  }
+  [type="file"]:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px var(--color-primary);
+    outline: none;
+  }
+
+  /* ── Dropdown styles ── */
   .dropdown {
-    max-width: 296px;
+    width: 100%;
+    cursor: pointer;
+  }
+  @media (min-width: 1024px) {
+    .dropdown {
+      max-width: 296px;
+    }
+  }
+  .dropdown-btn {
+    display: flex;
+    height: 64px;
+    align-items: center;
+    padding-inline: 18px;
+    border: 1px solid var(--color-border);
+    border-radius: 0.5rem;
+  }
+  .dropdown-icon-primary {
+    font-size: 1.5rem;
+    margin-right: 18px;
+    color: var(--color-primary-700);
+  }
+  .dropdown-icon-secondary {
+    font-size: 1.5rem;
+    color: var(--color-primary-700);
+    margin-left: auto;
+  }
+  .dropdown-menu {
+    padding: 2rem 1.5rem 2rem 2.5rem;
+    font-size: 0.9375rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    background-color: white;
+    position: absolute;
+    width: 100%;
+    z-index: 1000;
+    list-style: none;
+    border-radius: 0 0 0.5rem 0.5rem;
+    max-height: 11rem;
+    overflow-y: auto;
+  }
+
+  .alegreya {
+    font-family: var(--font-secondary);
+  }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar {
+    width: 5px;
+    height: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    background-color: #adadad;
+    border-radius: 8px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-secondary);
+    border-radius: 8px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-primary);
   }
 }
-.dropdown-btn {
-  display: flex;
-  height: 64px;
-  align-items: center;
-  padding-inline: 18px;
-  border: 1px solid var(--color-border);
-  border-radius: 0.5rem;
-}
-.dropdown-icon-primary {
-  font-size: 1.5rem;
-  margin-right: 18px;
-  color: var(--color-primary-700);
-}
-.dropdown-icon-secondary {
-  font-size: 1.5rem;
-  color: var(--color-primary-700);
-  margin-left: auto;
-}
-.dropdown-menu {
-  padding: 2rem 1.5rem 2rem 2.5rem;
-  font-size: 0.9375rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-  background-color: white;
-  position: absolute;
-  width: 100%;
-  z-index: 1000;
-  list-style: none;
-  border-radius: 0 0 0.5rem 0.5rem;
-  max-height: 11rem;
-  overflow-y: auto;
-}
 
-.alegreya {
-  font-family: var(--font-secondary);
-}
+@layer components {
+  /* ── Embla carousel navigation ── */
+  .embla__button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 9999px;
+    background-color: var(--color-primary);
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition:
+      transform 0.2s,
+      background-color 0.2s;
+  }
+  .embla__button:hover {
+    background-color: var(--color-primary-900);
+    transform: scale(1.1);
+  }
+  .embla__button:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
 
-/* Scrollbar */
-::-webkit-scrollbar {
-  width: 5px;
-  height: 4px;
-}
-::-webkit-scrollbar-track {
-  background-color: #adadad;
-  border-radius: 8px;
-}
-::-webkit-scrollbar-thumb {
-  background: var(--color-secondary);
-  border-radius: 8px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--color-primary);
-}
-
-/* Embla carousel navigation */
-.embla__button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.25rem;
-  height: 2.25rem;
-  border-radius: 9999px;
-  background-color: var(--color-primary);
-  color: white;
-  border: none;
-  cursor: pointer;
-  transition:
-    transform 0.2s,
-    background-color 0.2s;
-}
-.embla__button:hover {
-  background-color: var(--color-primary-900);
-  transform: scale(1.1);
-}
-.embla__button:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-
-/* Price range slider */
-.price-slider {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 100%;
-  height: 6px;
-  border-radius: 3px;
-  background: var(--color-secondary-200);
-  outline: none;
-  pointer-events: none;
-}
-.price-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: var(--color-accent-500);
-  cursor: pointer;
-  border: 2px solid white;
-  box-shadow: 0 1px 3px rgb(0 0 0 / 0.3);
-  pointer-events: all;
-}
-.price-slider::-moz-range-thumb {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: var(--color-accent-500);
-  cursor: pointer;
-  border: 2px solid white;
-  box-shadow: 0 1px 3px rgb(0 0 0 / 0.3);
-  pointer-events: all;
+  /* ── Price range slider ── */
+  .price-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--color-secondary-200);
+    outline: none;
+    pointer-events: none;
+  }
+  .price-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--color-accent-500);
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.3);
+    pointer-events: all;
+  }
+  .price-slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--color-accent-500);
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.3);
+    pointer-events: all;
+  }
 }

@@ -26,7 +26,7 @@ const Banner = ({ setFilters }) => {
             </p>{" "}
             dream footwear store
           </h1>
-          <p className="mb-8 px-[0.5rem] lg:mx-10 text-justify font-normal text-xl text-muted-foreground">
+          <p className="mb-8 px-2 lg:mx-10 text-justify font-normal text-xl text-muted-foreground">
             Shoe Store is a dream footwear store for all the shoe lovers. We
             have a wide range of shoes for all the occasions. Fluffy sneakers.
             Cushy slippers. Nights out. Days in. Quick errands. Transcontinental
@@ -53,9 +53,9 @@ const Banner = ({ setFilters }) => {
           <div
             style={{
               backgroundImage:
-                "linear-gradient(360deg, #4b5563 0%, #1f2937 75%)",
+                "linear-gradient(360deg, #fb7185 0%, #fff1f2 75%)",
             }}
-            className="m-auto bg-white rounded-full w-[21rem] h-[21rem] relative overflow-hidden md:h-[26rem] md:w-[26rem] lg:h-[30rem] lg:w-[30rem]"
+            className="m-auto bg-white rounded-full w-84 h-84 relative overflow-hidden md:h-104 md:w-104 lg:h-120 lg:w-120"
           >
             <img
               className="cursor-pointer scale-90 hover:scale-95 transition-transform duration-300 ease-in-out"

@@ -21,6 +21,8 @@ router.post(
     body("password").isLength({ min: 6 }),
     body("firstName").optional().trim(),
     body("lastName").optional().trim(),
+    body("address").optional().trim(),
+    body("number").optional().trim(),
   ],
   async (req, res) => {
     try {
@@ -127,23 +129,24 @@ router.post(
           id: user.id,
           userId: user.id,
           email: user.email,
-          isAdmin: user.isAdmin || false,
+          role: user.role || "user",
           name: user.name,
         },
         process.env.JWT_SECRET,
         { expiresIn: "7d" },
       );
 
-      res.json({
+      const responseData = {
         success: true,
         token,
         user: {
           id: user.id,
           email: user.email,
           name: user.name,
-          isAdmin: user.isAdmin || false,
+          role: user.role || "user",
         },
-      });
+      };
+      res.json(responseData);
     } catch (error) {
       console.error("Login error:", error);
       res.status(500).json({ message: "Server error" });

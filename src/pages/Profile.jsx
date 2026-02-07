@@ -21,10 +21,6 @@ const Profile = () => {
     email: "",
     phone: "",
     address: "",
-    city: "",
-    state: "",
-    zipCode: "",
-    country: "",
   });
 
   const { data: user, isLoading } = useQuery({
@@ -41,19 +37,19 @@ const Profile = () => {
       );
       return response.data.data;
     },
-    onSuccess: (data) => {
-      setFormData({
-        name: data.name || "",
-        email: data.email || "",
-        phone: data.phone || "",
-        address: data.address || "",
-        city: data.city || "",
-        state: data.state || "",
-        zipCode: data.zipCode || "",
-        country: data.country || "",
-      });
-    },
   });
+
+  // Update form data when user data is loaded
+  React.useEffect(() => {
+    if (user) {
+      setFormData({
+        name: user.name || "",
+        email: user.email || "",
+        phone: user.phone || "",
+        address: user.address || "",
+      });
+    }
+  }, [user]);
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data) => {
@@ -97,10 +93,6 @@ const Profile = () => {
       email: user?.email || "",
       phone: user?.phone || "",
       address: user?.address || "",
-      city: user?.city || "",
-      state: user?.state || "",
-      zipCode: user?.zipCode || "",
-      country: user?.country || "",
     });
     setIsEditing(false);
   };
@@ -229,74 +221,19 @@ const Profile = () => {
                   <FiMapPin className="mr-2 text-blue-600" />
                   Address Information
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="md:col-span-2">
+                <div className="grid grid-cols-1 gap-6">
+                  <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
                       Street Address
                     </label>
-                    <input
-                      type="text"
+                    <textarea
                       name="address"
                       value={formData.address}
                       onChange={handleInputChange}
                       disabled={!isEditing}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      City
-                    </label>
-                    <input
-                      type="text"
-                      name="city"
-                      value={formData.city}
-                      onChange={handleInputChange}
-                      disabled={!isEditing}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      State/Province
-                    </label>
-                    <input
-                      type="text"
-                      name="state"
-                      value={formData.state}
-                      onChange={handleInputChange}
-                      disabled={!isEditing}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      ZIP/Postal Code
-                    </label>
-                    <input
-                      type="text"
-                      name="zipCode"
-                      value={formData.zipCode}
-                      onChange={handleInputChange}
-                      disabled={!isEditing}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Country
-                    </label>
-                    <input
-                      type="text"
-                      name="country"
-                      value={formData.country}
-                      onChange={handleInputChange}
-                      disabled={!isEditing}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      rows={3}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed resize-none"
+                      placeholder="Enter your full address"
                     />
                   </div>
                 </div>

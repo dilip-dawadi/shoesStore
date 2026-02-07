@@ -20,7 +20,7 @@ router.get("/", async (req, res) => {
       })
       .from(wishlists)
       .leftJoin(products, eq(wishlists.productId, products.id))
-      .where(eq(wishlists.userId, req.user.userId));
+      .where(eq(wishlists.userId, req.user.id));
 
     res.json(wishlistItems);
   } catch (error) {
@@ -50,7 +50,7 @@ router.post("/", async (req, res) => {
       .from(wishlists)
       .where(
         and(
-          eq(wishlists.userId, req.user.userId),
+          eq(wishlists.userId, req.user.id),
           eq(wishlists.productId, productId),
         ),
       );
@@ -63,7 +63,7 @@ router.post("/", async (req, res) => {
     const [wishlistItem] = await db
       .insert(wishlists)
       .values({
-        userId: req.user.userId,
+        userId: req.user.id,
         productId,
       })
       .returning();
@@ -81,10 +81,7 @@ router.delete("/:id", async (req, res) => {
     const [deleted] = await db
       .delete(wishlists)
       .where(
-        and(
-          eq(wishlists.id, req.params.id),
-          eq(wishlists.userId, req.user.userId),
-        ),
+        and(eq(wishlists.id, req.params.id), eq(wishlists.userId, req.user.id)),
       )
       .returning();
 

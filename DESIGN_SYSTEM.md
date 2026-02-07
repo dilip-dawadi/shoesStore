@@ -14,7 +14,7 @@ This project uses a custom rose/pink color scheme configured through CSS variabl
   --secondary: 330 81% 67%; /* Pink */
   --secondary-foreground: 0 0% 100%;
 
-  --accent: 351 95% 71%; /* Light Rose */
+  --accent: 347 89% 61%; /* Rose #FE3E69 */
   --accent-foreground: 0 0% 100%;
 
   --muted: 210 40% 96.1%; /* Light Gray */
@@ -26,6 +26,9 @@ This project uses a custom rose/pink color scheme configured through CSS variabl
   --border: 214.3 31.8% 91.4%;
   --input: 214.3 31.8% 91.4%;
   --ring: 347 89% 61%;
+
+  --destructive: 330 81% 67%; /* Pink */
+  --destructive-foreground: 0 0% 100%;
 }
 ```
 

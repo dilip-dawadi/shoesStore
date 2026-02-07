@@ -22,7 +22,7 @@ router.get("/", async (req, res) => {
       })
       .from(carts)
       .leftJoin(products, eq(carts.productId, products.id))
-      .where(eq(carts.userId, req.user.userId));
+      .where(eq(carts.userId, req.user.id));
 
     res.json(cartItems);
   } catch (error) {
@@ -52,7 +52,7 @@ router.post("/", async (req, res) => {
       .from(carts)
       .where(
         and(
-          eq(carts.userId, req.user.userId),
+          eq(carts.userId, req.user.id),
           eq(carts.productId, productId),
           eq(carts.size, size),
           eq(carts.color, color),
@@ -74,7 +74,7 @@ router.post("/", async (req, res) => {
     const [cartItem] = await db
       .insert(carts)
       .values({
-        userId: req.user.userId,
+        userId: req.user.id,
         productId,
         quantity,
         size,
@@ -97,9 +97,7 @@ router.put("/:id", async (req, res) => {
     const [cartItem] = await db
       .update(carts)
       .set({ quantity, updatedAt: new Date() })
-      .where(
-        and(eq(carts.id, req.params.id), eq(carts.userId, req.user.userId)),
-      )
+      .where(and(eq(carts.id, req.params.id), eq(carts.userId, req.user.id)))
       .returning();
 
     if (!cartItem) {
@@ -118,9 +116,7 @@ router.delete("/:id", async (req, res) => {
   try {
     const [deleted] = await db
       .delete(carts)
-      .where(
-        and(eq(carts.id, req.params.id), eq(carts.userId, req.user.userId)),
-      )
+      .where(and(eq(carts.id, req.params.id), eq(carts.userId, req.user.id)))
       .returning();
 
     if (!deleted) {
@@ -137,7 +133,7 @@ router.delete("/:id", async (req, res) => {
 // Clear cart
 router.delete("/", async (req, res) => {
   try {
-    await db.delete(carts).where(eq(carts.userId, req.user.userId));
+    await db.delete(carts).where(eq(carts.userId, req.user.id));
 
     res.json({ message: "Cart cleared" });
   } catch (error) {

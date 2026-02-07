@@ -18,11 +18,8 @@ router.get("/profile", authMiddleware, async (req, res) => {
         email: users.email,
         phone: users.phone,
         address: users.address,
-        city: users.city,
-        state: users.state,
-        zipCode: users.zipCode,
-        country: users.country,
-        isAdmin: users.isAdmin,
+        role: users.role,
+        isVerified: users.isVerified,
         createdAt: users.createdAt,
       })
       .from(users)
@@ -52,17 +49,13 @@ router.get("/profile", authMiddleware, async (req, res) => {
 router.put("/profile", authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
-    const { name, phone, address, city, state, zipCode, country } = req.body;
+    const { name, phone, address } = req.body;
 
     // Build update object with only provided fields
     const updateData = {};
     if (name !== undefined) updateData.name = name;
     if (phone !== undefined) updateData.phone = phone;
     if (address !== undefined) updateData.address = address;
-    if (city !== undefined) updateData.city = city;
-    if (state !== undefined) updateData.state = state;
-    if (zipCode !== undefined) updateData.zipCode = zipCode;
-    if (country !== undefined) updateData.country = country;
     updateData.updatedAt = new Date().toISOString();
 
     const [updatedUser] = await db
@@ -75,11 +68,9 @@ router.put("/profile", authMiddleware, async (req, res) => {
         email: users.email,
         phone: users.phone,
         address: users.address,
-        city: users.city,
-        state: users.state,
-        zipCode: users.zipCode,
-        country: users.country,
-        isAdmin: users.isAdmin,
+        role: users.role,
+        isVerified: users.isVerified,
+        createdAt: users.createdAt,
       });
 
     if (!updatedUser) {
