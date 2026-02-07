@@ -3,7 +3,6 @@ import React from "react";
 // import components
 import ProductList from "../components/ProductList";
 import Banner from "../components/Banner";
-import TopProduct from "./topProduct";
 import { useProducts } from "../hooks/useProducts";
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
@@ -101,9 +100,6 @@ const Home = () => {
           </div>
         </div>
       </section>
-
-      {/* Top Products Section */}
-      <TopProduct />
 
       {/* CTA Section */}
       <section className="py-16 bg-primary/5">

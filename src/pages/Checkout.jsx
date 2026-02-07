@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { loadStripe } from "@stripe/stripe-js";
 import {
   Elements,
@@ -41,12 +41,53 @@ const CheckoutForm = () => {
     country: "",
   });
 
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    let isMounted = true;
+    axios
+      .get(
+        `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/users/profile`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      )
+      .then((response) => {
+        if (!isMounted) return;
+        const profile = response.data?.data || response.data;
+        setShippingInfo((prev) => ({
+          ...prev,
+          fullName: prev.fullName || profile?.name || "",
+          email: prev.email || profile?.email || "",
+          phone: prev.phone || profile?.phone || "",
+          address: prev.address || profile?.address || "",
+        }));
+      })
+      .catch(() => {
+        // Silent fail
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const cartItems = cart?.items || [];
+  const toNumber = (value) =>
+    Number.isFinite(Number(value)) ? Number(value) : 0;
+  const formatCurrency = (value) =>
+    Number.isFinite(value) ? value.toFixed(2) : "0.00";
+
   const subtotal = cartItems.reduce(
-    (sum, item) => sum + item.price * item.quantity,
+    (sum, item) =>
+      sum +
+      toNumber(item.price ?? item.product?.price) * toNumber(item.quantity),
     0,
   );
-  const shipping = subtotal > 100 ? 0 : 10;
+  const shipping = subtotal > 100 ? 0 : cartItems.length > 0 ? 10 : 0;
   const tax = subtotal * 0.08;
   const total = subtotal + shipping + tax;
 
@@ -178,15 +219,15 @@ const CheckoutForm = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
+    <div className="min-h-screen bg-background py-12">
       <div className="max-w-7xl mx-auto px-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Checkout</h1>
-          <p className="text-gray-600">Complete your purchase</p>
+          <h1 className="text-4xl font-bold text-foreground mb-2">Checkout</h1>
+          <p className="text-muted-foreground">Complete your purchase</p>
         </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -197,18 +238,18 @@ const CheckoutForm = () => {
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="bg-white rounded-xl shadow-md p-6"
+                className="bg-card rounded-xl shadow-md p-6 border border-border"
               >
                 <div className="flex items-center mb-6">
-                  <FiMapPin className="text-blue-600 mr-2" size={24} />
-                  <h2 className="text-2xl font-bold text-gray-900">
+                  <FiMapPin className="text-primary mr-2" size={24} />
+                  <h2 className="text-2xl font-bold text-foreground">
                     Shipping Information
                   </h2>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-foreground mb-2">
                       <FiUser className="inline mr-1" /> Full Name *
                     </label>
                     <input
@@ -217,13 +258,13 @@ const CheckoutForm = () => {
                       value={shippingInfo.fullName}
                       onChange={handleInputChange}
                       required
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-accent focus:border-transparent"
                       placeholder="John Doe"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-foreground mb-2">
                       <FiMail className="inline mr-1" /> Email *
                     </label>
                     <input
@@ -232,13 +273,13 @@ const CheckoutForm = () => {
                       value={shippingInfo.email}
                       onChange={handleInputChange}
                       required
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-accent focus:border-transparent"
                       placeholder="john@example.com"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-foreground mb-2">
                       <FiPhone className="inline mr-1" /> Phone *
                     </label>
                     <input
@@ -247,13 +288,13 @@ const CheckoutForm = () => {
                       value={shippingInfo.phone}
                       onChange={handleInputChange}
                       required
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-accent focus:border-transparent"
                       placeholder="+1 (555) 123-4567"
                     />
                   </div>
 
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-foreground mb-2">
                       Address *
                     </label>
                     <input
@@ -262,13 +303,13 @@ const CheckoutForm = () => {
                       value={shippingInfo.address}
                       onChange={handleInputChange}
                       required
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-accent focus:border-transparent"
                       placeholder="123 Main Street"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-foreground mb-2">
                       City *
                     </label>
                     <input
@@ -277,13 +318,13 @@ const CheckoutForm = () => {
                       value={shippingInfo.city}
                       onChange={handleInputChange}
                       required
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-accent focus:border-transparent"
                       placeholder="New York"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-foreground mb-2">
                       State/Province *
                     </label>
                     <input
@@ -292,13 +333,13 @@ const CheckoutForm = () => {
                       value={shippingInfo.state}
                       onChange={handleInputChange}
                       required
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-accent focus:border-transparent"
                       placeholder="NY"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-foreground mb-2">
                       ZIP/Postal Code *
                     </label>
                     <input
@@ -307,13 +348,13 @@ const CheckoutForm = () => {
                       value={shippingInfo.zipCode}
                       onChange={handleInputChange}
                       required
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-accent focus:border-transparent"
                       placeholder="10001"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-foreground mb-2">
                       Country *
                     </label>
                     <input
@@ -322,7 +363,7 @@ const CheckoutForm = () => {
                       value={shippingInfo.country}
                       onChange={handleInputChange}
                       required
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-accent focus:border-transparent"
                       placeholder="United States"
                     />
                   </div>
@@ -334,35 +375,35 @@ const CheckoutForm = () => {
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.1 }}
-                className="bg-white rounded-xl shadow-md p-6"
+                className="bg-card rounded-xl shadow-md p-6 border border-border"
               >
                 <div className="flex items-center mb-6">
-                  <FiCreditCard className="text-blue-600 mr-2" size={24} />
-                  <h2 className="text-2xl font-bold text-gray-900">
+                  <FiCreditCard className="text-primary mr-2" size={24} />
+                  <h2 className="text-2xl font-bold text-foreground">
                     Payment Information
                   </h2>
                 </div>
 
-                <div className="border border-gray-300 rounded-lg p-4 bg-gray-50">
+                <div className="border border-border rounded-lg p-4 bg-secondary/10">
                   <CardElement
                     options={{
                       style: {
                         base: {
                           fontSize: "16px",
-                          color: "#424770",
+                          color: "hsl(var(--foreground))",
                           "::placeholder": {
-                            color: "#aab7c4",
+                            color: "hsl(var(--muted-foreground))",
                           },
                         },
                         invalid: {
-                          color: "#9e2146",
+                          color: "hsl(var(--destructive))",
                         },
                       },
                     }}
                   />
                 </div>
 
-                <p className="text-xs text-gray-500 mt-3">
+                <p className="text-xs text-muted-foreground mt-3">
                   Your payment information is securely processed by Stripe
                 </p>
               </motion.div>
@@ -374,12 +415,12 @@ const CheckoutForm = () => {
                 transition={{ delay: 0.2 }}
                 type="submit"
                 disabled={!stripe || isProcessing}
-                className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors shadow-lg hover:shadow-xl"
+                className="w-full bg-primary text-primary-foreground py-4 rounded-xl font-bold text-lg hover:bg-primary/90 disabled:bg-muted disabled:cursor-not-allowed transition-colors shadow-lg hover:shadow-xl"
               >
                 {isProcessing ? (
                   <LoadingBtn message="Processing Payment..." />
                 ) : (
-                  `Pay $${total.toFixed(2)}`
+                  `Pay $${formatCurrency(total)}`
                 )}
               </motion.button>
             </form>
@@ -390,11 +431,11 @@ const CheckoutForm = () => {
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              className="bg-white rounded-xl shadow-md p-6 sticky top-4"
+              className="bg-card rounded-xl shadow-md p-6 sticky top-4 border border-border"
             >
               <div className="flex items-center mb-6">
-                <FiShoppingBag className="text-blue-600 mr-2" size={24} />
-                <h2 className="text-2xl font-bold text-gray-900">
+                <FiShoppingBag className="text-primary mr-2" size={24} />
+                <h2 className="text-2xl font-bold text-foreground">
                   Order Summary
                 </h2>
               </div>
@@ -404,7 +445,7 @@ const CheckoutForm = () => {
                 {cartItems.map((item) => (
                   <div
                     key={item.id}
-                    className="flex items-center space-x-4 pb-4 border-b border-gray-100"
+                    className="flex items-center space-x-4 pb-4 border-b border-border"
                   >
                     <img
                       src={item.product?.images?.[0] || "/placeholder.jpg"}
@@ -412,15 +453,19 @@ const CheckoutForm = () => {
                       className="w-16 h-16 object-cover rounded-lg"
                     />
                     <div className="flex-1">
-                      <h3 className="text-sm font-semibold text-gray-800 line-clamp-1">
+                      <h3 className="text-sm font-semibold text-foreground line-clamp-1">
                         {item.product?.name}
                       </h3>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-muted-foreground">
                         Qty: {item.quantity}
                       </p>
                     </div>
-                    <span className="text-sm font-bold text-gray-900">
-                      ${(item.price * item.quantity).toFixed(2)}
+                    <span className="text-sm font-bold text-foreground">
+                      $
+                      {formatCurrency(
+                        toNumber(item.price ?? item.product?.price) *
+                          toNumber(item.quantity),
+                      )}
                     </span>
                   </div>
                 ))}
@@ -428,28 +473,28 @@ const CheckoutForm = () => {
 
               {/* Price Breakdown */}
               <div className="space-y-3 mb-6">
-                <div className="flex justify-between text-gray-700">
+                <div className="flex justify-between text-muted-foreground">
                   <span>Subtotal</span>
-                  <span>${subtotal.toFixed(2)}</span>
+                  <span>${formatCurrency(subtotal)}</span>
                 </div>
-                <div className="flex justify-between text-gray-700">
+                <div className="flex justify-between text-muted-foreground">
                   <span>Shipping</span>
                   <span>
-                    {shipping === 0 ? "FREE" : `$${shipping.toFixed(2)}`}
+                    {shipping === 0 ? "FREE" : `$${formatCurrency(shipping)}`}
                   </span>
                 </div>
-                <div className="flex justify-between text-gray-700">
+                <div className="flex justify-between text-muted-foreground">
                   <span>Tax (8%)</span>
-                  <span>${tax.toFixed(2)}</span>
+                  <span>${formatCurrency(tax)}</span>
                 </div>
-                <div className="border-t border-gray-200 pt-3 flex justify-between text-xl font-bold text-gray-900">
+                <div className="border-t border-border pt-3 flex justify-between text-xl font-bold text-foreground">
                   <span>Total</span>
-                  <span>${total.toFixed(2)}</span>
+                  <span>${formatCurrency(total)}</span>
                 </div>
               </div>
 
               {subtotal > 100 && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm text-green-700">
+                <div className="bg-accent/10 border border-accent/20 rounded-lg p-3 text-sm text-accent">
                   🎉 You've qualified for free shipping!
                 </div>
               )}

@@ -13,6 +13,7 @@ import Wishlist from "./pages/wishlist";
 import ProductDetails from "./pages/ProductDetails";
 import UserVerification from "./pages/UserEmailVerification";
 import Checkout from "./pages/Checkout";
+import CartPage from "./pages/Cart";
 import Orders from "./pages/Orders";
 import Profile from "./pages/Profile";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -22,7 +23,6 @@ import ManageOrders from "./pages/ManageOrders";
 import ManageUsers from "./pages/ManageUsers";
 import AddProduct from "./pages/AddProduct";
 import { NotifyInfo } from "./toastify";
-import { Car } from "lucide-react";
 import Cart from "./components/cart";
 
 const AppContent = () => {
@@ -73,6 +73,7 @@ const AppContent = () => {
           <Route path="/product/:id" element={<ProductDetails />} />
           <Route path="/products" element={<Products />} />
           <Route path="/wishlist" element={<Wishlist />} />
+          <Route path="/cart" element={<CartPage />} />
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/orders" element={<Orders />} />
           <Route path="/profile" element={<Profile />} />
