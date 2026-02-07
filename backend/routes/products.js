@@ -501,15 +501,25 @@ router.post("/", authMiddleware, adminMiddleware, async (req, res) => {
       });
     }
 
+    // Handle category - can be string or array
+    const categoryValue = Array.isArray(category)
+      ? category.join(", ")
+      : category?.trim();
+
+    // Handle shoeFor - can be string or array
+    const shoeForValue = Array.isArray(shoeFor)
+      ? shoeFor.join(", ")
+      : shoeFor?.trim();
+
     const [product] = await db
       .insert(products)
       .values({
         name: name.trim(),
         description: description?.trim(),
         price: parseFloat(price).toFixed(2),
-        category: category.trim(),
+        category: categoryValue,
         brand: brand?.trim(),
-        shoeFor: shoeFor?.trim(),
+        shoeFor: shoeForValue,
         sizes: sizes || [],
         colors: colors || [],
         images: images || [],

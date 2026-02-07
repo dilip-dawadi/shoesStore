@@ -90,7 +90,7 @@ const ProductDetails = () => {
         <div className="basis-1/3 flex-1">
           <img
             className="m-auto rounded-lg md:min-w-[400px] lg:min-w-[600px] xl:min-w-[680px] xl:max-w-[720px] xl:min-h-[520px] xl:max-h-[520px] object-cover bg-white"
-            src={singleShoeData?.selectedFile[0]}
+            src={singleShoeData?.selectedFile?.[0] || "/placeholder.jpg"}
             alt=""
           />
           <h3 className="text-lg text-justify mb-4 py-2 px-4 rounded-md bg-gray-100 w-full">
@@ -100,7 +100,10 @@ const ProductDetails = () => {
         <div className="basis-1/3 flex-1 w-full mb-8 bg-white border border-gray-300 rounded-lg px-6 py-8">
           <div className="flex items-center gap-x-4 mb-8">
             <div className="w-10 h-10 p-1 border border-gray-300 rounded-full">
-              <img src={singleShoeData?.selectedFile[0]} alt="" />
+              <img
+                src={singleShoeData?.selectedFile?.[0] || "/placeholder.jpg"}
+                alt=""
+              />
             </div>
             <div>
               <div className="font-bold text-lg ">{singleShoeData?.title}</div>

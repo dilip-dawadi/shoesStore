@@ -13,14 +13,7 @@ import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
-import {
-  Package,
-  Edit,
-  Trash2,
-  Plus,
-  ArrowLeft,
-  Search,
-} from "lucide-react";
+import { Package, Edit, Trash2, Plus, ArrowLeft, Search } from "lucide-react";
 import { NotifySuccess, NotifyError } from "../toastify";
 
 const ManageProducts = () => {
@@ -120,9 +113,7 @@ const ManageProducts = () => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
-            <span>
-              All Products ({filteredProducts?.length || 0})
-            </span>
+            <span>All Products ({filteredProducts?.length || 0})</span>
           </CardTitle>
         </CardHeader>
         <CardContent>

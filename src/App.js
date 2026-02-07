@@ -78,6 +78,7 @@ const AppContent = () => {
           <Route path="/profile" element={<Profile />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/products" element={<ManageProducts />} />
+          <Route path="/admin/products/add" element={<AddProduct />} />
           <Route path="/admin/orders" element={<ManageOrders />} />
           <Route path="/admin/users" element={<ManageUsers />} />
           <Route path="/dashboard" element={<UserDashboard />} />

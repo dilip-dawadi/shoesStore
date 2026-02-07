@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FiFilter,
@@ -11,9 +11,11 @@ import { BiReset } from "react-icons/bi";
 
 const AdvancedFilters = ({ filters, setFilters, isLoading }) => {
   const [isOpen, setIsOpen] = useState(true);
-  const [localFilters, setLocalFilters] = useState(filters);
-  const [priceRange, setPriceRange] = useState([0, 500]);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState(filters.search || "");
+  const [priceRange, setPriceRange] = useState([
+    parseInt(filters.minPrice) || 0,
+    parseInt(filters.maxPrice) || 500,
+  ]);
   const [expandedSections, setExpandedSections] = useState({
     price: true,
     category: true,
@@ -57,41 +59,68 @@ const AdvancedFilters = ({ filters, setFilters, isLoading }) => {
     { label: "Name: Z to A", value: "-name" },
   ];
 
-  // Update local filters when filters prop changes
+  // Debounced search effect
   useEffect(() => {
-    setLocalFilters(filters);
-    if (filters.minPrice || filters.maxPrice) {
-      setPriceRange([
-        parseInt(filters.minPrice) || 0,
-        parseInt(filters.maxPrice) || 500,
-      ]);
-    }
-  }, [filters]);
+    const timeoutId = setTimeout(() => {
+      if (searchTerm !== filters.search) {
+        setFilters((prev) => ({
+          ...prev,
+          search: searchTerm,
+          page: 1,
+        }));
+      }
+    }, 500);
 
-  const toggleSection = (section) => {
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm]);
+
+  // Debounced price range effect
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (
+        priceRange[0] !== parseInt(filters.minPrice || 0) ||
+        priceRange[1] !== parseInt(filters.maxPrice || 500)
+      ) {
+        setFilters((prev) => ({
+          ...prev,
+          minPrice: priceRange[0],
+          maxPrice: priceRange[1],
+          page: 1,
+        }));
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [priceRange]);
+
+  const toggleSection = useCallback((section) => {
     setExpandedSections((prev) => ({
       ...prev,
       [section]: !prev[section],
     }));
-  };
+  }, []);
 
-  const handleMultiSelect = (category, value) => {
-    const currentValues = localFilters[category]
-      ? localFilters[category].split(",")
-      : [];
-    let newValues;
+  const handleMultiSelect = useCallback(
+    (category, value) => {
+      const currentValues = filters[category]
+        ? filters[category].split(",")
+        : [];
+      let newValues;
 
-    if (currentValues.includes(value)) {
-      newValues = currentValues.filter((v) => v !== value);
-    } else {
-      newValues = [...currentValues, value];
-    }
+      if (currentValues.includes(value)) {
+        newValues = currentValues.filter((v) => v !== value);
+      } else {
+        newValues = [...currentValues, value];
+      }
 
-    setLocalFilters({
-      ...localFilters,
-      [category]: newValues.length > 0 ? newValues.join(",") : "",
-    });
-  };
+      setFilters((prev) => ({
+        ...prev,
+        [category]: newValues.length > 0 ? newValues.join(",") : "",
+        page: 1,
+      }));
+    },
+    [filters, setFilters],
+  );
 
   const handlePriceChange = useCallback((index, value) => {
     const numValue = Number(value);
@@ -105,24 +134,18 @@ const AdvancedFilters = ({ filters, setFilters, isLoading }) => {
     });
   }, []);
 
-  const handleSortChange = (value) => {
-    setLocalFilters({
-      ...localFilters,
-      sort: value,
-    });
-  };
+  const handleSortChange = useCallback(
+    (value) => {
+      setFilters((prev) => ({
+        ...prev,
+        sort: value,
+        page: 1,
+      }));
+    },
+    [setFilters],
+  );
 
-  const applyFilters = () => {
-    setFilters({
-      ...localFilters,
-      minPrice: priceRange[0],
-      maxPrice: priceRange[1],
-      search: searchTerm,
-      page: 1, // Reset to first page when filters change
-    });
-  };
-
-  const resetFilters = () => {
+  const resetFilters = useCallback(() => {
     const defaultFilters = {
       page: 1,
       limit: 12,
@@ -134,165 +157,208 @@ const AdvancedFilters = ({ filters, setFilters, isLoading }) => {
       maxPrice: "",
       search: "",
     };
-    setLocalFilters(defaultFilters);
     setPriceRange([0, 500]);
     setSearchTerm("");
     setFilters(defaultFilters);
-  };
+  }, [setFilters]);
 
-  const isSelected = (category, value) => {
-    const currentValues = localFilters[category]
-      ? localFilters[category].split(",")
-      : [];
-    return currentValues.includes(value);
-  };
+  const isSelected = useCallback(
+    (category, value) => {
+      const currentValues = filters[category]
+        ? filters[category].split(",")
+        : [];
+      return currentValues.includes(value);
+    },
+    [filters],
+  );
+
+  // Memoize active filters count
+  const activeFiltersCount = useMemo(() => {
+    return [
+      filters.category?.split(",").filter(Boolean).length || 0,
+      filters.brand?.split(",").filter(Boolean).length || 0,
+      filters.shoeFor?.split(",").filter(Boolean).length || 0,
+      searchTerm ? 1 : 0,
+      filters.minPrice && filters.minPrice !== "0" ? 1 : 0,
+      filters.maxPrice && filters.maxPrice !== "500" ? 1 : 0,
+    ].reduce((a, b) => a + b, 0);
+  }, [filters, searchTerm]);
 
   const FilterSection = ({ title, sectionKey, children }) => (
-    <div className="border-b border-gray-200 pb-4">
+    <div className="border-b border-border pb-4">
       <button
         onClick={() => toggleSection(sectionKey)}
-        className="flex items-center justify-between w-full text-left font-semibold text-gray-800 hover:text-blue-600 transition-colors"
+        className="flex items-center justify-between w-full text-left font-semibold text-foreground hover:text-accent transition-colors"
       >
         <span className="text-sm uppercase tracking-wide">{title}</span>
         {expandedSections[sectionKey] ? (
-          <FiChevronUp className="text-gray-500" />
+          <FiChevronUp className="text-muted-foreground" />
         ) : (
-          <FiChevronDown className="text-gray-500" />
+          <FiChevronDown className="text-muted-foreground" />
         )}
       </button>
-      <AnimatePresence>
-        {expandedSections[sectionKey] && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden"
-          >
-            <div className="mt-3 space-y-2">{children}</div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {expandedSections[sectionKey] && (
+        <div className="mt-3 space-y-2">{children}</div>
+      )}
     </div>
   );
 
-  const CheckboxItem = ({ label, checked, onChange }) => (
-    <label className="flex items-center space-x-2 cursor-pointer group">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={onChange}
-        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer"
-      />
-      <span className="text-sm text-gray-700 group-hover:text-blue-600 transition-colors">
+  const CheckboxItem = React.memo(({ label, checked, onChange }) => (
+    <label className="flex items-center space-x-3 cursor-pointer group py-1">
+      <div className="relative flex items-center">
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={onChange}
+          className="w-4 h-4 text-accent border-border rounded focus:ring-accent focus:ring-2 cursor-pointer transition-all"
+        />
+      </div>
+      <span className="text-sm text-foreground group-hover:text-accent transition-colors select-none">
         {label}
       </span>
     </label>
-  );
+  ));
 
   return (
     <div className="relative">
       {/* Mobile Toggle Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="lg:hidden fixed bottom-4 right-4 z-50 bg-blue-600 text-white p-4 rounded-full shadow-lg hover:bg-blue-700 transition-colors"
+        className="lg:hidden fixed bottom-4 right-4 z-50 bg-accent text-accent-foreground p-4 rounded-full shadow-lg hover:bg-accent/90 transition-all hover:scale-110"
+        aria-label="Toggle filters"
       >
         <FiFilter size={24} />
+        {activeFiltersCount > 0 && (
+          <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
+            {activeFiltersCount}
+          </span>
+        )}
       </button>
 
       {/* Filter Panel */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ x: -300, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: -300, opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="bg-white rounded-lg shadow-lg p-6 space-y-6 sticky top-4"
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-gray-200 pb-4">
-              <div className="flex items-center space-x-2">
-                <FiFilter className="text-blue-600" size={20} />
-                <h2 className="text-xl font-bold text-gray-800">Filters</h2>
+      {isOpen && (
+        <div className="bg-card rounded-xl shadow-xl border border-border p-6 space-y-6 sticky top-4 overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-border pb-4">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-accent/10 rounded-lg">
+                <FiFilter className="text-accent" size={20} />
               </div>
+              <div>
+                <h2 className="text-xl font-bold text-foreground">Filters</h2>
+                {activeFiltersCount > 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    {activeFiltersCount} active
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    No filters applied
+                  </p>
+                )}
+              </div>
+            </div>
+            <button
+              onClick={() => setIsOpen(false)}
+              className="lg:hidden text-muted-foreground hover:text-foreground transition-colors p-1"
+              aria-label="Close filters"
+            >
+              <FiX size={20} />
+            </button>
+          </div>
+
+          {/* Search */}
+          <div className="relative">
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search products..."
+              className="w-full pl-10 pr-4 py-2.5 border border-border bg-background rounded-lg focus:ring-2 focus:ring-accent focus:border-accent transition-all text-foreground placeholder:text-muted-foreground"
+            />
+            <FiSearch
+              className="absolute left-3 top-3.5 text-muted-foreground"
+              size={16}
+            />
+            {searchTerm && (
               <button
-                onClick={() => setIsOpen(false)}
-                className="lg:hidden text-gray-500 hover:text-gray-700"
+                onClick={() => setSearchTerm("")}
+                className="absolute right-3 top-3 text-muted-foreground hover:text-foreground transition-colors"
+                aria-label="Clear search"
               >
-                <FiX size={20} />
+                <FiX size={16} />
               </button>
-            </div>
+            )}
+          </div>
 
-            {/* Search */}
-            <div className="relative">
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search products..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-              <FiSearch className="absolute left-3 top-3 text-gray-400" />
-            </div>
+          {/* Sort */}
+          <FilterSection title="Sort By" sectionKey="sort">
+            <select
+              value={filters.sort}
+              onChange={(e) => handleSortChange(e.target.value)}
+              className="w-full px-3 py-2.5 border border-border bg-background rounded-lg focus:ring-2 focus:ring-accent focus:border-accent transition-all text-sm text-foreground cursor-pointer"
+            >
+              {sortOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </FilterSection>
 
-            {/* Sort */}
-            <FilterSection title="Sort By" sectionKey="sort">
-              <select
-                value={localFilters.sort}
-                onChange={(e) => handleSortChange(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-              >
-                {sortOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </FilterSection>
-
-            {/* Price Range */}
-            <FilterSection title="Price Range" sectionKey="price">
-              <div className="px-2">
-                <div className="relative h-6">
-                  {/* Track background */}
-                  <div className="absolute top-1/2 -translate-y-1/2 w-full h-1.5 bg-gray-200 rounded-full" />
-                  {/* Active track */}
-                  <div
-                    className="absolute top-1/2 -translate-y-1/2 h-1.5 bg-accent-500 rounded-full"
-                    style={{
-                      left: `${(priceRange[0] / 500) * 100}%`,
-                      right: `${100 - (priceRange[1] / 500) * 100}%`,
-                    }}
-                  />
-                  {/* Min slider */}
-                  <input
-                    type="range"
-                    min={0}
-                    max={500}
-                    value={priceRange[0]}
-                    onChange={(e) => handlePriceChange(0, e.target.value)}
-                    className="price-slider absolute top-0 left-0 w-full"
-                  />
-                  {/* Max slider */}
-                  <input
-                    type="range"
-                    min={0}
-                    max={500}
-                    value={priceRange[1]}
-                    onChange={(e) => handlePriceChange(1, e.target.value)}
-                    className="price-slider absolute top-0 left-0 w-full"
-                  />
+          {/* Price Range */}
+          <FilterSection title="Price Range" sectionKey="price">
+            <div className="px-2">
+              <div className="relative h-6 mb-6">
+                {/* Track background */}
+                <div className="absolute top-1/2 -translate-y-1/2 w-full h-1.5 bg-secondary/20 rounded-full" />
+                {/* Active track */}
+                <div
+                  className="absolute top-1/2 -translate-y-1/2 h-1.5 bg-accent rounded-full transition-all"
+                  style={{
+                    left: `${(priceRange[0] / 500) * 100}%`,
+                    right: `${100 - (priceRange[1] / 500) * 100}%`,
+                  }}
+                />
+                {/* Min slider */}
+                <input
+                  type="range"
+                  min={0}
+                  max={500}
+                  value={priceRange[0]}
+                  onChange={(e) => handlePriceChange(0, e.target.value)}
+                  className="price-slider absolute top-0 left-0 w-full"
+                />
+                {/* Max slider */}
+                <input
+                  type="range"
+                  min={0}
+                  max={500}
+                  value={priceRange[1]}
+                  onChange={(e) => handlePriceChange(1, e.target.value)}
+                  className="price-slider absolute top-0 left-0 w-full"
+                />
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex-1 bg-background border border-border rounded-lg px-3 py-2">
+                  <span className="text-xs text-muted-foreground">Min</span>
+                  <div className="text-sm font-semibold text-foreground">
+                    ${priceRange[0]}
+                  </div>
                 </div>
-                <div className="flex justify-between mt-3 text-sm text-gray-600">
-                  <span className="font-medium">${priceRange[0]}</span>
-                  <span className="font-medium">${priceRange[1]}</span>
+                <div className="text-muted-foreground">—</div>
+                <div className="flex-1 bg-background border border-border rounded-lg px-3 py-2">
+                  <span className="text-xs text-muted-foreground">Max</span>
+                  <div className="text-sm font-semibold text-foreground">
+                    ${priceRange[1]}
+                  </div>
                 </div>
               </div>
-            </FilterSection>
+            </div>
+          </FilterSection>
 
-            {/* Category */}
-            <FilterSection title="Category" sectionKey="category">
+          {/* Category */}
+          <FilterSection title="Category" sectionKey="category">
+            <div className="max-h-48 overflow-y-auto pr-2 space-y-2 custom-scrollbar">
               {categories.map((category) => (
                 <CheckboxItem
                   key={category}
@@ -301,10 +367,12 @@ const AdvancedFilters = ({ filters, setFilters, isLoading }) => {
                   onChange={() => handleMultiSelect("category", category)}
                 />
               ))}
-            </FilterSection>
+            </div>
+          </FilterSection>
 
-            {/* Brand */}
-            <FilterSection title="Brand" sectionKey="brand">
+          {/* Brand */}
+          <FilterSection title="Brand" sectionKey="brand">
+            <div className="max-h-48 overflow-y-auto pr-2 space-y-2 custom-scrollbar">
               {brands.map((brand) => (
                 <CheckboxItem
                   key={brand}
@@ -313,58 +381,107 @@ const AdvancedFilters = ({ filters, setFilters, isLoading }) => {
                   onChange={() => handleMultiSelect("brand", brand)}
                 />
               ))}
-            </FilterSection>
-
-            {/* Gender/Type */}
-            <FilterSection title="For" sectionKey="gender">
-              {genderOptions.map((option) => (
-                <CheckboxItem
-                  key={option}
-                  label={option}
-                  checked={isSelected("shoeFor", option)}
-                  onChange={() => handleMultiSelect("shoeFor", option)}
-                />
-              ))}
-            </FilterSection>
-
-            {/* Action Buttons */}
-            <div className="space-y-2 pt-4">
-              <button
-                onClick={applyFilters}
-                disabled={isLoading}
-                className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors shadow-md hover:shadow-lg"
-              >
-                {isLoading ? "Applying..." : "Apply Filters"}
-              </button>
-              <button
-                onClick={resetFilters}
-                className="w-full bg-gray-100 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-200 transition-colors flex items-center justify-center space-x-2"
-              >
-                <BiReset size={18} />
-                <span>Reset All</span>
-              </button>
             </div>
+          </FilterSection>
 
-            {/* Active Filters Count */}
-            {(localFilters.category ||
-              localFilters.brand ||
-              localFilters.shoeFor ||
-              searchTerm) && (
-              <div className="text-center text-sm text-gray-600 pt-2 border-t border-gray-200">
-                <span className="font-semibold">
-                  {[
-                    localFilters.category?.split(",").filter(Boolean).length,
-                    localFilters.brand?.split(",").filter(Boolean).length,
-                    localFilters.shoeFor?.split(",").filter(Boolean).length,
-                    searchTerm ? 1 : 0,
-                  ].reduce((a, b) => a + b, 0)}
-                </span>{" "}
-                active filter(s)
+          {/* Gender/Type */}
+          <FilterSection title="For" sectionKey="gender">
+            {genderOptions.map((option) => (
+              <CheckboxItem
+                key={option}
+                label={option}
+                checked={isSelected("shoeFor", option)}
+                onChange={() => handleMultiSelect("shoeFor", option)}
+              />
+            ))}
+          </FilterSection>
+
+          {/* Action Buttons */}
+          <div className="space-y-2 pt-4 border-t border-border">
+            <button
+              onClick={resetFilters}
+              className="w-full bg-secondary/10 text-foreground py-3 rounded-lg font-semibold hover:bg-secondary/20 transition-all flex items-center justify-center space-x-2 border border-border"
+            >
+              <BiReset size={18} />
+              <span>Reset All Filters</span>
+            </button>
+          </div>
+
+          {/* Loading Indicator */}
+          {isLoading && (
+            <div className="absolute inset-0 bg-background/50 backdrop-blur-sm rounded-xl flex items-center justify-center pointer-events-none">
+              <div className="bg-card px-4 py-2 rounded-lg shadow-lg border border-border">
+                <p className="text-sm font-medium text-foreground">
+                  Loading...
+                </p>
               </div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+            </div>
+          )}
+        </div>
+      )}
+
+      <style jsx>{`
+        .price-slider {
+          -webkit-appearance: none;
+          appearance: none;
+          background: transparent;
+          pointer-events: none;
+        }
+
+        .price-slider::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          appearance: none;
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          background: var(--color-accent);
+          cursor: pointer;
+          pointer-events: auto;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+          border: 2px solid white;
+          transition: all 0.2s ease;
+        }
+
+        .price-slider::-webkit-slider-thumb:hover {
+          transform: scale(1.2);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .price-slider::-moz-range-thumb {
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          background: var(--color-accent);
+          cursor: pointer;
+          pointer-events: auto;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+          border: 2px solid white;
+          transition: all 0.2s ease;
+        }
+
+        .price-slider::-moz-range-thumb:hover {
+          transform: scale(1.2);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: var(--color-secondary-100);
+          border-radius: 3px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: var(--color-accent);
+          border-radius: 3px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: var(--color-accent-600);
+        }
+      `}</style>
     </div>
   );
 };

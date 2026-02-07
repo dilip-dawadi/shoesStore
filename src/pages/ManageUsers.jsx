@@ -76,13 +76,21 @@ const ManageUsers = () => {
   });
 
   const handleRoleChange = (userId, newRole) => {
-    if (window.confirm(`Are you sure you want to change this user's role to ${newRole}?`)) {
+    if (
+      window.confirm(
+        `Are you sure you want to change this user's role to ${newRole}?`,
+      )
+    ) {
       updateRoleMutation.mutate({ userId, role: newRole });
     }
   };
 
   const handleDeleteUser = (userId) => {
-    if (window.confirm("Are you sure you want to delete this user? This action cannot be undone.")) {
+    if (
+      window.confirm(
+        "Are you sure you want to delete this user? This action cannot be undone.",
+      )
+    ) {
       deleteUserMutation.mutate(userId);
     }
   };

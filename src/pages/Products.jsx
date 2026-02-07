@@ -89,12 +89,9 @@ function Products() {
   };
 
   const ProductCard = ({ product, index }) => (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05 }}
+    <div
       onClick={() => navigate(`/product/${product.id}`)}
-      className={`bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden group ${
+      className={`bg-card border border-border rounded-xl shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden group ${
         viewMode === "list" ? "flex" : ""
       }`}
     >
@@ -109,28 +106,28 @@ function Products() {
           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
         />
         {product.stock < 5 && product.stock > 0 && (
-          <div className="absolute top-2 left-2 bg-orange-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
+          <div className="absolute top-2 left-2 bg-accent text-accent-foreground px-3 py-1 rounded-full text-xs font-semibold shadow-md">
             Only {product.stock} left
           </div>
         )}
         {product.stock === 0 && (
-          <div className="absolute top-2 left-2 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
+          <div className="absolute top-2 left-2 bg-destructive text-destructive-foreground px-3 py-1 rounded-full text-xs font-semibold shadow-md">
             Out of Stock
           </div>
         )}
         {product.isFeatured && (
-          <div className="absolute top-2 right-2 bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-semibold">
+          <div className="absolute top-2 right-2 bg-primary text-primary-foreground px-3 py-1 rounded-full text-xs font-semibold">
             Featured
           </div>
         )}
         <button
           onClick={(e) => handleWishlistToggle(e, product)}
-          className="absolute bottom-2 right-2 bg-white p-2 rounded-full shadow-lg hover:scale-110 transition-transform"
+          className="absolute bottom-2 right-2 bg-background border border-border p-2 rounded-full shadow-lg hover:scale-110 transition-all hover:shadow-xl"
         >
           {isInWishlist(product.id) ? (
-            <AiFillHeart className="text-red-500" size={20} />
+            <AiFillHeart className="text-destructive" size={20} />
           ) : (
-            <AiOutlineHeart className="text-gray-600" size={20} />
+            <AiOutlineHeart className="text-muted-foreground" size={20} />
           )}
         </button>
       </div>
@@ -139,35 +136,35 @@ function Products() {
         className={`p-4 flex flex-col ${viewMode === "list" ? "flex-1" : ""}`}
       >
         <div className="flex-1">
-          <h3 className="text-lg font-bold text-gray-800 mb-1 line-clamp-2 group-hover:text-blue-600 transition-colors">
+          <h3 className="text-lg font-bold text-foreground mb-1 line-clamp-2 group-hover:text-primary transition-colors">
             {product.name}
           </h3>
-          <p className="text-sm text-gray-500 mb-2">{product.brand}</p>
+          <p className="text-sm text-muted-foreground mb-2">{product.brand}</p>
           {viewMode === "list" && (
-            <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+            <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
               {product.description}
             </p>
           )}
           <div className="flex items-center space-x-2 mb-3">
             <div className="flex items-center">
               <span className="text-yellow-500 mr-1">★</span>
-              <span className="text-sm font-semibold text-gray-700">
-                {product.rating?.toFixed(1) || "0.0"}
+              <span className="text-sm font-semibold text-foreground">
+                {parseFloat(product.rating || 0).toFixed(1)}
               </span>
             </div>
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-muted-foreground">
               ({product.numReviews || 0} reviews)
             </span>
           </div>
         </div>
 
-        <div className="flex items-center justify-between mt-auto pt-3 border-t border-gray-100">
+        <div className="flex items-center justify-between mt-auto pt-3 border-t border-border">
           <div>
-            <span className="text-2xl font-bold text-blue-600">
+            <span className="text-2xl font-bold text-primary">
               ${product.price}
             </span>
             {product.compareAtPrice && (
-              <span className="text-sm text-gray-400 line-through ml-2">
+              <span className="text-sm text-muted-foreground line-through ml-2">
                 ${product.compareAtPrice}
               </span>
             )}
@@ -175,32 +172,32 @@ function Products() {
           <button
             onClick={(e) => handleAddToCart(e, product)}
             disabled={product.stock === 0 || isAddingToCart}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center space-x-2 shadow-md hover:shadow-lg"
+            className="bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 disabled:bg-muted disabled:cursor-not-allowed transition-colors flex items-center space-x-2 shadow-md hover:shadow-lg"
           >
             <HiShoppingCart size={18} />
             <span className="font-semibold">Add</span>
           </button>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
+          <h1 className="text-4xl font-bold text-foreground mb-2">
             Discover Your Perfect Shoes
           </h1>
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             Browse our collection of premium footwear
           </p>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Filters Sidebar */}
-          <div className="lg:w-80 flex-shrink-0">
+          <div className="lg:w-80 shrink-0">
             <AdvancedFilters
               filters={filters}
               setFilters={setFilters}
@@ -211,8 +208,8 @@ function Products() {
           {/* Products Grid */}
           <div className="flex-1">
             {/* Toolbar */}
-            <div className="bg-white rounded-lg shadow-md p-4 mb-6 flex items-center justify-between">
-              <div className="text-sm text-gray-600">
+            <div className="bg-card border border-border rounded-lg shadow-md p-4 mb-6 flex items-center justify-between">
+              <div className="text-sm text-muted-foreground">
                 {isLoading ? (
                   <span>Loading...</span>
                 ) : (
@@ -229,20 +226,20 @@ function Products() {
               <div className="flex items-center space-x-2">
                 <button
                   onClick={() => setViewMode("grid")}
-                  className={`p-2 rounded-lg transition-colors ${
+                  className={`p-2 rounded-lg transition-all ${
                     viewMode === "grid"
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                      ? "bg-accent text-accent-foreground shadow-md"
+                      : "bg-secondary/10 text-muted-foreground hover:bg-secondary/20 hover:text-foreground"
                   }`}
                 >
                   <FiGrid size={20} />
                 </button>
                 <button
                   onClick={() => setViewMode("list")}
-                  className={`p-2 rounded-lg transition-colors ${
+                  className={`p-2 rounded-lg transition-all ${
                     viewMode === "list"
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                      ? "bg-accent text-accent-foreground shadow-md"
+                      : "bg-secondary/10 text-muted-foreground hover:bg-secondary/20 hover:text-foreground"
                   }`}
                 >
                   <FiList size={20} />
@@ -256,13 +253,13 @@ function Products() {
                 {[...Array(6)].map((_, i) => (
                   <div
                     key={i}
-                    className="bg-white rounded-xl shadow-md overflow-hidden animate-pulse"
+                    className="bg-card border border-border rounded-xl shadow-md overflow-hidden animate-pulse"
                   >
-                    <div className="h-64 bg-gray-200"></div>
+                    <div className="h-64 bg-secondary/20"></div>
                     <div className="p-4 space-y-3">
-                      <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                      <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                      <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                      <div className="h-4 bg-secondary/20 rounded w-3/4"></div>
+                      <div className="h-4 bg-secondary/20 rounded w-1/2"></div>
+                      <div className="h-4 bg-secondary/20 rounded w-1/4"></div>
                     </div>
                   </div>
                 ))}
@@ -271,11 +268,13 @@ function Products() {
 
             {/* Error State */}
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-                <p className="text-red-600 font-semibold">
+              <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-6 text-center">
+                <p className="text-destructive font-semibold">
                   Error loading products
                 </p>
-                <p className="text-red-500 text-sm mt-2">{error.message}</p>
+                <p className="text-destructive/80 text-sm mt-2">
+                  {error.message}
+                </p>
               </div>
             )}
 
@@ -283,9 +282,11 @@ function Products() {
             {!isLoading && !error && (
               <>
                 {products.length === 0 ? (
-                  <div className="bg-white rounded-lg shadow-md p-12 text-center">
-                    <p className="text-gray-500 text-lg">No products found</p>
-                    <p className="text-gray-400 text-sm mt-2">
+                  <div className="bg-card rounded-lg shadow-md p-12 text-center">
+                    <p className="text-muted-foreground text-lg">
+                      No products found
+                    </p>
+                    <p className="text-muted-foreground text-sm mt-2">
                       Try adjusting your filters
                     </p>
                   </div>
@@ -315,7 +316,7 @@ function Products() {
                         handlePageChange(pagination.currentPage - 1)
                       }
                       disabled={!pagination.hasPrevPage}
-                      className="p-2 rounded-lg bg-white shadow-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className="p-2 rounded-lg bg-card border border-border shadow-md hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                     >
                       <FiChevronLeft size={20} />
                     </button>
@@ -334,10 +335,10 @@ function Products() {
                             <button
                               key={pageNum}
                               onClick={() => handlePageChange(pageNum)}
-                              className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+                              className={`px-4 py-2 rounded-lg font-semibold transition-all ${
                                 pageNum === pagination.currentPage
-                                  ? "bg-blue-600 text-white shadow-md"
-                                  : "bg-white text-gray-700 hover:bg-gray-50 shadow"
+                                  ? "bg-accent text-accent-foreground shadow-md scale-105"
+                                  : "bg-card border border-border text-foreground hover:bg-accent/10 hover:border-accent shadow"
                               }`}
                             >
                               {pageNum}
@@ -362,7 +363,7 @@ function Products() {
                         handlePageChange(pagination.currentPage + 1)
                       }
                       disabled={!pagination.hasNextPage}
-                      className="p-2 rounded-lg bg-white shadow-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className="p-2 rounded-lg bg-card border border-border shadow-md hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                     >
                       <FiChevronRight size={20} />
                     </button>

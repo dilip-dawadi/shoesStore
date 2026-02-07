@@ -7,8 +7,11 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 const Carousel = () => {
-  const { data, isLoading } = useProducts({ limit: 10, sort: "-sales" });
-  const topShoeData = data?.products || [];
+  const { data, isLoading } = useProducts({
+    limit: 10,
+    sort: "-rating",
+  });
+  const topShoeData = data?.data || [];
 
   const [emblaRef, emblaApi] = useEmblaCarousel(
     { loop: true, align: "start", slidesToScroll: 1 },
@@ -34,7 +37,9 @@ const Carousel = () => {
     emblaApi.on("reInit", onSelect);
   }, [emblaApi, onSelect]);
 
-  if (isLoading) return <div></div>;
+  if (isLoading) return <div className="py-8"></div>;
+  if (!topShoeData || topShoeData.length === 0) return null;
+
   return (
     <div className="container mx-auto">
       <div className="relative">
@@ -52,7 +57,13 @@ const Carousel = () => {
       <div className="relative">
         <div className="overflow-hidden" ref={emblaRef}>
           <div className="flex gap-6">
-            {topShoeData?.map((item, index) => (
+            {[
+              ...topShoeData,
+              ...topShoeData,
+              ...topShoeData,
+              ...topShoeData,
+              ...topShoeData,
+            ]?.map((item, index) => (
               <div
                 key={index}
                 className="flex-[0_0_100%] min-w-0 sm:flex-[0_0_50%] lg:flex-[0_0_33.333%] xl:flex-[0_0_25%] pb-10"
@@ -61,12 +72,12 @@ const Carousel = () => {
                   <center>
                     <img
                       className="mb-3 rounded-tl-[90px] min-w-[240px] max-w-[240px] min-h-[240px] max-h-[240px] object-cover"
-                      src={item?.selectedFile[0]}
-                      alt={item?.title}
+                      src={item?.images?.[0] || "/placeholder.jpg"}
+                      alt={item?.name || item?.title}
                     />
                   </center>
                   <div className="w-full h-full flex justify-center items-center rounded-lg rounded-tl-[90px] opacity-0 hover:opacity-100 transition duration-500 absolute top-[50%] left-[50%] transform -translate-x-1/2 -translate-y-1/2 ease-in-out hover:bg-[#00000003]">
-                    <Link to={`/product/${item?._id}`}>
+                    <Link to={`/product/${item?.id}`}>
                       <button className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-900 transition duration-300">
                         <BsEyeFill className="text-xl" />
                       </button>
@@ -74,6 +85,7 @@ const Carousel = () => {
                   </div>
                   <div className="mb-2 flex text-sm justify-between px-2 align-center">
                     {item?.shoeFor
+                      ?.split(",")
                       ?.map((shoeF, idx) => {
                         const IndexStyle =
                           idx === 0 ? "bg-yellow-400" : "bg-primary";
@@ -82,15 +94,18 @@ const Carousel = () => {
                             className={`capitalize ${IndexStyle} rounded-lg text-white px-4 py-[0.35rem] tracking-[.04em]`}
                             key={idx}
                           >
-                            {shoeF}
+                            {shoeF.trim()}
                           </span>
                         );
                       })
-                      .splice(0, 2)}
+                      ?.slice(0, 2)}
                   </div>
                   <div className="flex justify-between mb-0 bg-gray-200 px-4 py-[0.7rem] rounded-lg text-black font-medium">
                     <div className="max-w-[120px]">
-                      {item?.title.split(" ").slice(0, 6).join(" ")}
+                      {(item?.name || item?.title)
+                        ?.split(" ")
+                        .slice(0, 6)
+                        .join(" ")}
                     </div>
                     <div className="text-black">Rs. {item?.price}</div>
                   </div>

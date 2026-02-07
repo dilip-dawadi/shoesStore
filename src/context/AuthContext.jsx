@@ -15,7 +15,6 @@ export const AuthProvider = ({ children }) => {
         const storedToken = localStorage.getItem("token");
         const storedUser = localStorage.getItem("user");
 
-
         if (storedToken) {
           // Verify token is not expired
           const decoded = jwtDecode(storedToken);
@@ -75,10 +74,6 @@ export const AuthProvider = ({ children }) => {
 
   const isAuthenticated = !!token && !!user;
   const isAdmin = user?.role === "admin";
-  
-  console.log("AuthContext - user:", user);
-  console.log("AuthContext - isAdmin:", isAdmin);
-  console.log("AuthContext - user.role:", user?.role);
 
   const value = {
     user,

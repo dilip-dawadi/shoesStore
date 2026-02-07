@@ -55,9 +55,7 @@ const AddProduct = () => {
       navigate("/admin/products");
     },
     onError: (error) => {
-      NotifyError(
-        error.response?.data?.message || "Failed to create product"
-      );
+      NotifyError(error.response?.data?.message || "Failed to create product");
     },
   });
 
@@ -95,7 +93,7 @@ const AddProduct = () => {
 
     // Simulate image upload - In production, upload to your storage service
     const newImageUrls = files.map((file) => URL.createObjectURL(file));
-    
+
     setImageUrls((prev) => [...prev, ...newImageUrls]);
     setFormData((prev) => ({
       ...prev,
@@ -125,9 +123,6 @@ const AddProduct = () => {
     }
     if (!formData.brand) {
       return NotifyWarning("Please provide a brand");
-    }
-    if (formData.images.length === 0) {
-      return NotifyWarning("Please upload at least one image");
     }
 
     // Prepare data for submission
@@ -276,29 +271,32 @@ const AddProduct = () => {
             <div className="space-y-2">
               <Label>Shoe Type</Label>
               <div className="flex flex-wrap gap-2">
-                {["Running", "Casual", "Sports", "Formal", "Lounging", "Everyday"].map(
-                  (type) => (
-                    <Button
-                      key={type}
-                      type="button"
-                      variant={
-                        formData.shoeFor.includes(type) ? "default" : "outline"
-                      }
-                      size="sm"
-                      onClick={() => handleShoeForChange(type)}
-                    >
-                      {type}
-                    </Button>
-                  )
-                )}
+                {[
+                  "Running",
+                  "Casual",
+                  "Sports",
+                  "Formal",
+                  "Lounging",
+                  "Everyday",
+                ].map((type) => (
+                  <Button
+                    key={type}
+                    type="button"
+                    variant={
+                      formData.shoeFor.includes(type) ? "default" : "outline"
+                    }
+                    size="sm"
+                    onClick={() => handleShoeForChange(type)}
+                  >
+                    {type}
+                  </Button>
+                ))}
               </div>
             </div>
 
             {/* Image Upload */}
             <div className="space-y-2">
-              <Label>
-                Product Images <span className="text-destructive">*</span>
-              </Label>
+              <Label>Product Images</Label>
               <div className="border-2 border-dashed border-border rounded-lg p-6">
                 <div className="text-center">
                   <Upload className="mx-auto h-12 w-12 text-muted-foreground mb-4" />

@@ -1,8 +1,14 @@
-import { Dialog, Transition } from "@headlessui/react";
-import React, { Fragment } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useLogin, useRegister } from "../../hooks/useAuth";
 import { NotifyInfo, NotifySuccess } from "../../toastify";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 export default function Auth({
   IsSignup,
@@ -80,208 +86,160 @@ export default function Auth({
         {text}
       </p>
 
-      <Transition appear show={isOpen} as={Fragment}>
-        <Dialog as="div" className="relative z-30" onClose={closeModal}>
-          <Transition.Child
-            as={Fragment}
-            enter="ease-out duration-300"
-            enterFrom="opacity-0"
-            enterTo="opacity-100"
-            leave="ease-in duration-200"
-            leaveFrom="opacity-100"
-            leaveTo="opacity-0"
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogContent className="mx-2 max-w-md max-h-[90vh] overflow-y-auto rounded-lg bg-background">
+          <DialogHeader>
+            <DialogTitle className="text-center text-foreground">
+              {IsSignup ? "Sign up for an account" : "Log in to your account"}
+            </DialogTitle>
+          </DialogHeader>
+          <form
+            className="mb-0 md:space-y-5 space-y-2"
+            autoComplete="off"
+            onSubmit={handleSubmit}
           >
-            <div className="fixed inset-0 bg-black bg-opacity-25" />
-          </Transition.Child>
-          <div className="fixed inset-0 overflow-y-auto">
-            <div className="flex min-h-full items-center justify-center p-4 text-center">
-              <Transition.Child
-                as={Fragment}
-                enter="ease-out duration-300"
-                enterFrom="opacity-0 scale-95"
-                enterTo="opacity-100 scale-100"
-                leave="ease-in duration-200"
-                leaveFrom="opacity-100 scale-100"
-                leaveTo="opacity-0 scale-95"
-              >
-                <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
-                  <form
-                    className="mb-0 md:space-y-5 space-y-2"
-                    autoComplete="off"
-                    onSubmit={handleSubmit}
-                  >
-                    <Dialog.Title
-                      as="h3"
-                      className="text-lg font-medium leading-6 text-gray-900 text-center"
-                    >
-                      {IsSignup
-                        ? "Sign up for an account"
-                        : "Log in to your account"}
-                    </Dialog.Title>
-                    {IsSignup && (
-                      <>
-                        <div className="w-full md:w-1/2 md:inline-block md:mr-1">
-                          <label htmlFor="firstName">First Name</label>
-                          <div className="mt-1">
-                            <input
-                              name="firstName"
-                              type="text"
-                              onChange={handleChange}
-                            />
-                          </div>
-                        </div>
+            {IsSignup && (
+              <>
+                <div className="w-full md:w-1/2 md:inline-block md:mr-1">
+                  <label htmlFor="firstName">First Name</label>
+                  <div className="mt-1">
+                    <input
+                      name="firstName"
+                      type="text"
+                      onChange={handleChange}
+                    />
+                  </div>
+                </div>
 
-                        <div className="w-full md:w-[48%] md:inline-block">
-                          <label htmlFor="lastName">Last Name</label>
-                          <div className="mt-1">
-                            <input
-                              onChange={handleChange}
-                              name="lastName"
-                              type="text"
-                            />
-                          </div>
-                        </div>
-                      </>
-                    )}
-                    <div>
-                      <label htmlFor="email">Email address</label>
-                      <div className="mt-1">
-                        <input
-                          onChange={handleChange}
-                          id="email"
-                          name="email"
-                          type="email"
-                          autoComplete="email"
-                        />
-                      </div>
-                    </div>
-                    <div
-                      className={
-                        IsSignup
-                          ? "w-full md:w-1/2 md:inline-block md:mr-1"
-                          : "w-full"
-                      }
-                    >
-                      <label htmlFor="password">Password</label>
-                      <div className="mt-1">
-                        <input
-                          onChange={handleChange}
-                          name="password"
-                          type="password"
-                          onClick={(e) => {
-                            e.target.type = "text";
-                          }}
-                          onBlur={(e) => {
-                            e.target.type = "password";
-                          }}
-                        />
-                      </div>
-                    </div>
-                    {IsSignup && (
-                      <>
-                        <div className="w-full md:w-[48%] md:inline-block">
-                          <label htmlFor="confirmPassword">
-                            Confirm Password
-                          </label>
-                          <div className="mt-1">
-                            <input
-                              onChange={handleChange}
-                              name="confirmPassword"
-                              type="password"
-                              onClick={(e) => {
-                                e.target.type = "text";
-                              }}
-                              onBlur={(e) => {
-                                e.target.type = "password";
-                              }}
-                            />
-                          </div>
-                        </div>
-                        <div className="w-full md:w-1/2 md:inline-block md:mr-1">
-                          <label htmlFor="address">Address</label>
-                          <div className="mt-1">
-                            <input
-                              onChange={handleChange}
-                              name="address"
-                              type="text"
-                            />
-                          </div>
-                        </div>
-                        <div className="w-full md:w-[48%] md:inline-block">
-                          <label htmlFor="number">Contact Number</label>
-                          <div className="mt-1">
-                            <input
-                              onChange={handleChange}
-                              name="number"
-                              type="tel"
-                            />
-                          </div>
-                        </div>
-                      </>
-                    )}
-                    <div className="flex items-center">
-                      <input
-                        id="terms-and-privacy"
-                        name="terms-and-privacy"
-                        type="checkbox"
-                        className="h-4 w-4 text-primary focus:ring-primary-500 border-gray-300 rounded"
-                        checked={checkbox}
-                        onChange={() => setCheckbox(!checkbox)}
-                      />
-                      <label
-                        htmlFor="terms-and-privacy"
-                        className="ml-2 block text-sm text-gray-900"
-                      >
-                        I agree to the
-                        <a
-                          href="/"
-                          className="text-primary hover:text-primary-600"
-                        >
-                          {" "}
-                          Terms{" "}
-                        </a>
-                        and
-                        <a
-                          href="/"
-                          className="text-primary hover:text-primary-600"
-                        >
-                          {" "}
-                          Privacy Policy{" "}
-                        </a>
-                        .
-                      </label>
-                    </div>
-
-                    <div>
-                      <button
-                        className="w-1/2 inline-block mr-1 text-primary"
-                        type="button"
-                        onClick={() => {
-                          setIsSignup(!IsSignup);
-                        }}
-                      >
-                        {IsSignup ? "Sign in instead" : "Create Account"}
-                      </button>
-                      <button
-                        type="submit"
-                        className="w-[48%] inline-block justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-700"
-                      >
-                        {IsSignup ? "Sign Up" : "Log In"}
-                      </button>
-                    </div>
-                    <p
-                      className="text-center text-sm text-gray-500
-                                        first-letter:capitalize"
-                    >
-                      click on the overlay to close the popup window
-                    </p>
-                  </form>
-                </Dialog.Panel>
-              </Transition.Child>
+                <div className="w-full md:w-[48%] md:inline-block">
+                  <label htmlFor="lastName">Last Name</label>
+                  <div className="mt-1">
+                    <input
+                      onChange={handleChange}
+                      name="lastName"
+                      type="text"
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+            <div>
+              <label htmlFor="email">Email address</label>
+              <div className="mt-1">
+                <input
+                  onChange={handleChange}
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                />
+              </div>
             </div>
-          </div>
-        </Dialog>
-      </Transition>
+            <div
+              className={
+                IsSignup ? "w-full md:w-1/2 md:inline-block md:mr-1" : "w-full"
+              }
+            >
+              <label htmlFor="password">Password</label>
+              <div className="mt-1">
+                <input
+                  onChange={handleChange}
+                  name="password"
+                  type="password"
+                  onClick={(e) => {
+                    e.target.type = "text";
+                  }}
+                  onBlur={(e) => {
+                    e.target.type = "password";
+                  }}
+                />
+              </div>
+            </div>
+            {IsSignup && (
+              <>
+                <div className="w-full md:w-[48%] md:inline-block">
+                  <label htmlFor="confirmPassword">Confirm Password</label>
+                  <div className="mt-1">
+                    <input
+                      onChange={handleChange}
+                      name="confirmPassword"
+                      type="password"
+                      onClick={(e) => {
+                        e.target.type = "text";
+                      }}
+                      onBlur={(e) => {
+                        e.target.type = "password";
+                      }}
+                    />
+                  </div>
+                </div>
+                <div className="w-full md:w-1/2 md:inline-block md:mr-1">
+                  <label htmlFor="address">Address</label>
+                  <div className="mt-1">
+                    <input onChange={handleChange} name="address" type="text" />
+                  </div>
+                </div>
+                <div className="w-full md:w-[48%] md:inline-block">
+                  <label htmlFor="number">Contact Number</label>
+                  <div className="mt-1">
+                    <input onChange={handleChange} name="number" type="tel" />
+                  </div>
+                </div>
+              </>
+            )}
+            <div className="flex items-center">
+              <input
+                id="terms-and-privacy"
+                name="terms-and-privacy"
+                type="checkbox"
+                className="h-4 w-4 text-accent focus:ring-accent border-border rounded"
+                checked={checkbox}
+                onChange={() => setCheckbox(!checkbox)}
+              />
+              <label
+                htmlFor="terms-and-privacy"
+                className="ml-2 block text-sm text-foreground"
+              >
+                I agree to the
+                <a href="/" className="text-accent hover:text-accent/80">
+                  {" "}
+                  Terms{" "}
+                </a>
+                and
+                <a href="/" className="text-accent hover:text-accent/80">
+                  {" "}
+                  Privacy Policy{" "}
+                </a>
+                .
+              </label>
+            </div>
+
+            <div className="flex gap-2 w-full">
+              <Button
+                variant="ghost"
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsSignup(!IsSignup);
+                }}
+                className="flex-1 text-accent hover:text-accent/80 hover:bg-accent/10"
+              >
+                {IsSignup ? "Sign in instead" : "Create Account"}
+              </Button>
+              <Button
+                type="submit"
+                className="flex-1 bg-accent text-accent-foreground hover:bg-accent/90"
+              >
+                {IsSignup ? "Sign Up" : "Log In"}
+              </Button>
+            </div>
+            <p className="text-center text-sm text-muted-foreground first-letter:capitalize">
+              click on the overlay to close the popup window
+            </p>
+          </form>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

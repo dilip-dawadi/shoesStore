@@ -149,6 +149,36 @@ router.get("/", authMiddleware, async (req, res) => {
   }
 });
 
+// ==================== GET ALL ORDERS (ADMIN) ====================
+router.get("/all", authMiddleware, async (req, res) => {
+  try {
+    // Check if user is admin
+    if (req.user.role !== "admin") {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Admin only.",
+      });
+    }
+
+    const allOrders = await db
+      .select()
+      .from(orders)
+      .orderBy(desc(orders.createdAt));
+
+    res.json({
+      success: true,
+      orders: allOrders,
+      count: allOrders.length,
+    });
+  } catch (error) {
+    console.error("Get all orders error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch orders",
+    });
+  }
+});
+
 // ==================== GET SINGLE ORDER ====================
 router.get("/:id", authMiddleware, async (req, res) => {
   try {

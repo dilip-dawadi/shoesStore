@@ -20,19 +20,25 @@ const Product = ({ Products }) => {
   const { mutate: removeFromWishlist, isPending: isRemoving } =
     useRemoveFromWishlist();
 
-  const wishListIDs = wishlist?.items?.map((item) => item.productId) || [];
+  const wishlistItems = wishlist?.items || [];
+  const wishListIDs = wishlistItems.map((item) => item.productId);
   const loading = isAdding || isRemoving;
+
+  const getWishlistItemId = (productId) => {
+    const item = wishlistItems.find((item) => item.productId === productId);
+    return item?.id;
+  };
   return (
     <Card className="px-3 pt-3 rounded-lg rounded-tl-[90px] w-full max-w-[352px] mx-auto cursor-pointer hover:shadow-lg transition relative group">
       <center>
         <img
           className="mb-3 rounded-tl-[90px] min-w-[240px] max-w-[240px] min-h-[240px] max-h-[240px] object-cover"
-          src={Products?.selectedFile[0]}
-          alt={Products?.title}
+          src={Products?.images?.[0] || "/placeholder.jpg"}
+          alt={Products?.name || Products?.title}
         />
       </center>
       <div className="w-full h-full flex justify-center items-center rounded-lg rounded-tl-[90px] opacity-0 group-hover:opacity-100 transition duration-500 absolute top-[50%] left-[50%] transform -translate-x-1/2 -translate-y-1/2 ease-in-out group-hover:bg-[#00000003]">
-        <Link to={`/product/${Products?._id}`}>
+        <Link to={`/product/${Products?.id}`}>
           <Button variant="default" size="default" className="gap-2">
             <BsEyeFill className="text-xl" />
           </Button>
@@ -54,7 +60,7 @@ const Product = ({ Products }) => {
               )
             }
           />
-        ) : wishListIDs?.find((item) => item === Products?._id) ? (
+        ) : wishListIDs?.find((item) => item === Products?.id) ? (
           loading ? (
             <LoadingCircle />
           ) : (
@@ -68,7 +74,10 @@ const Product = ({ Products }) => {
                 right: "10%",
               }}
               title="WishListed"
-              onClick={() => removeFromWishlist(Products?._id)}
+              onClick={() => {
+                const wishlistItemId = getWishlistItemId(Products?.id);
+                if (wishlistItemId) removeFromWishlist(wishlistItemId);
+              }}
             />
           )
         ) : loading ? (
@@ -84,12 +93,13 @@ const Product = ({ Products }) => {
               right: "10%",
             }}
             title="Add to WishList"
-            onClick={() => addToWishlist(Products?._id)}
+            onClick={() => addToWishlist({ productId: Products?.id })}
           />
         )}
       </div>
       <div className="mb-2 flex text-sm justify-between px-2 align-center gap-2">
         {Products?.shoeFor
+          ?.split(",")
           ?.map((shoeF, index) => {
             return (
               <Badge
@@ -97,15 +107,18 @@ const Product = ({ Products }) => {
                 className="capitalize"
                 key={index}
               >
-                {shoeF}
+                {shoeF.trim()}
               </Badge>
             );
           })
-          .splice(0, 2)}
+          ?.slice(0, 2)}
       </div>
       <div className="flex justify-between mb-2 bg-muted px-4 py-[0.7rem] rounded-lg text-foreground font-medium">
         <div className="max-w-[120px]">
-          {Products?.title.split(" ").slice(0, 6).join(" ")}
+          {(Products?.name || Products?.title)
+            ?.split(" ")
+            .slice(0, 6)
+            .join(" ")}
         </div>
         <div className="text-foreground font-semibold">
           Rs. {Products?.price}
