@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import axios from "../../lib/axios";
+import api from "../../lib/axios";
 import {
   Card,
   CardContent,
@@ -16,19 +16,29 @@ const AdminDashboard = () => {
   const { isAdmin } = useAuth();
   const navigate = useNavigate();
 
-  const { data: stats, isLoading } = useQuery({
+  const {
+    data: stats,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["admin-stats"],
     queryFn: async () => {
-      const { data } = await axios.get("/products");
-      return {
-        totalProducts: data.total || 0,
-        totalUsers: 0, // Would come from a users endpoint
-        totalOrders: 0, // Would come from orders endpoint
-        totalRevenue: 0, // Would come from orders endpoint
-      };
+      const { data } = await api.get("/users/admin/stats");
+      return data.data;
     },
     enabled: isAdmin,
   });
+
+  if (error) {
+    return (
+      <div className="container mx-auto py-8 px-4">
+        <div className="text-center text-red-600">
+          <p>Error loading admin statistics</p>
+          <p className="text-sm text-muted-foreground mt-2">{error.message}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto py-8 px-4">

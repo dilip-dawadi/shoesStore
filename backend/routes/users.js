@@ -1,7 +1,7 @@
 import express from "express";
 import { db } from "../db/index.js";
-import { users } from "../db/schema.js";
-import { eq, desc } from "drizzle-orm";
+import { users, orders } from "../db/schema.js";
+import { eq, desc, count, sum, sql } from "drizzle-orm";
 import { authMiddleware } from "../middleware/auth.js";
 
 const router = express.Router();
@@ -18,6 +18,10 @@ router.get("/profile", authMiddleware, async (req, res) => {
         email: users.email,
         phone: users.phone,
         address: users.address,
+        city: users.city,
+        state: users.state,
+        zipCode: users.zipCode,
+        country: users.country,
         role: users.role,
         isVerified: users.isVerified,
         createdAt: users.createdAt,
@@ -49,13 +53,17 @@ router.get("/profile", authMiddleware, async (req, res) => {
 router.put("/profile", authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
-    const { name, phone, address } = req.body;
+    const { name, phone, address, city, state, zipCode, country } = req.body;
 
     // Build update object with only provided fields
     const updateData = {};
     if (name !== undefined) updateData.name = name;
     if (phone !== undefined) updateData.phone = phone;
     if (address !== undefined) updateData.address = address;
+    if (city !== undefined) updateData.city = city;
+    if (state !== undefined) updateData.state = state;
+    if (zipCode !== undefined) updateData.zipCode = zipCode;
+    if (country !== undefined) updateData.country = country;
     updateData.updatedAt = new Date();
 
     const [updatedUser] = await db
@@ -68,6 +76,10 @@ router.put("/profile", authMiddleware, async (req, res) => {
         email: users.email,
         phone: users.phone,
         address: users.address,
+        city: users.city,
+        state: users.state,
+        zipCode: users.zipCode,
+        country: users.country,
         role: users.role,
         isVerified: users.isVerified,
         createdAt: users.createdAt,
@@ -229,6 +241,50 @@ router.delete("/:id", authMiddleware, async (req, res) => {
     res.status(500).json({
       success: false,
       message: error.message || "Failed to delete user",
+    });
+  }
+});
+
+// ==================== GET ADMIN STATS ====================
+router.get("/admin/stats", authMiddleware, async (req, res) => {
+  try {
+    // Check if user is admin
+    if (req.user.role !== "admin") {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Admin only.",
+      });
+    }
+
+    // Get total users count
+    const [usersCount] = await db.select({ count: count() }).from(users);
+
+    // Get total orders count and revenue
+    const [ordersStats] = await db
+      .select({
+        count: count(),
+        revenue: sum(orders.totalAmount),
+      })
+      .from(orders);
+
+    // Get products count (from products table)
+    const { products } = await import("../db/schema.js");
+    const [productsCount] = await db.select({ count: count() }).from(products);
+
+    res.json({
+      success: true,
+      data: {
+        totalUsers: usersCount?.count || 0,
+        totalOrders: ordersStats?.count || 0,
+        totalRevenue: parseFloat(ordersStats?.revenue || 0),
+        totalProducts: productsCount?.count || 0,
+      },
+    });
+  } catch (error) {
+    console.error("Get admin stats error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch admin stats",
     });
   }
 });

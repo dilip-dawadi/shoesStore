@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import axios from "../../lib/axios";
+import api from "../../lib/axios";
 import {
   Card,
   CardContent,
@@ -34,7 +34,7 @@ const ManageOrders = () => {
   const { data: orders, isLoading } = useQuery({
     queryKey: ["admin-orders"],
     queryFn: async () => {
-      const { data } = await axios.get("/orders/all");
+      const { data } = await api.get("/orders/all");
       return data.orders || [];
     },
     enabled: isAdmin,
@@ -42,7 +42,7 @@ const ManageOrders = () => {
 
   const updateStatusMutation = useMutation({
     mutationFn: async ({ orderId, status }) => {
-      await axios.put(`/orders/${orderId}/status`, { status });
+      await api.patch(`/orders/${orderId}/status`, { status });
     },
     onSuccess: () => {
       queryClient.invalidateQueries(["admin-orders"]);

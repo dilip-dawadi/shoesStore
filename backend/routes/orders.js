@@ -86,21 +86,30 @@ router.post("/", authMiddleware, async (req, res) => {
     }
 
     // Create order in database
+    const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+
     const [order] = await db
       .insert(orders)
       .values({
         userId,
+        orderNumber,
         status: "pending",
         items: items,
-        shippingInfo: shippingInfo,
-        subtotal: subtotal.toString(),
-        shipping: shipping.toString(),
-        tax: tax.toString(),
-        total: total.toString(),
+        totalAmount: total.toString(),
+        shippingAddress: shippingInfo,
         paymentIntentId,
-        paymentStatus: "paid",
       })
       .returning();
+
+    // Add calculated fields for frontend display
+    const orderWithDetails = {
+      ...order,
+      subtotal,
+      shipping,
+      tax,
+      total,
+      shippingInfo,
+    };
 
     // Clear user's cart
     try {
@@ -112,7 +121,7 @@ router.post("/", authMiddleware, async (req, res) => {
 
     res.status(201).json({
       success: true,
-      data: order,
+      data: orderWithDetails,
       message: "Order created successfully",
     });
   } catch (error) {
@@ -135,10 +144,29 @@ router.get("/", authMiddleware, async (req, res) => {
       .where(eq(orders.userId, userId))
       .orderBy(desc(orders.createdAt));
 
+    // Transform orders to include calculated fields
+    const ordersWithDetails = userOrders.map((order) => {
+      const total = Number(order.totalAmount) || 0;
+      // Calculate breakdown (typical e-commerce split)
+      const subtotal = total / 1.08 / 1.1; // Remove tax (8%) and shipping estimate
+      const shipping = subtotal > 100 ? 0 : 10;
+      const tax = (subtotal + shipping) * 0.08;
+
+      return {
+        ...order,
+        total,
+        totalAmount: total, // Keep both for compatibility
+        subtotal: subtotal,
+        shipping: shipping,
+        tax: tax,
+        shippingInfo: order.shippingAddress, // Map to frontend field name
+      };
+    });
+
     res.json({
       success: true,
-      data: userOrders,
-      count: userOrders.length,
+      data: ordersWithDetails,
+      count: ordersWithDetails.length,
     });
   } catch (error) {
     console.error("Get orders error:", error);
@@ -243,7 +271,7 @@ router.patch(
         .update(orders)
         .set({
           status,
-          updatedAt: new Date().toISOString(),
+          updatedAt: new Date(),
         })
         .where(eq(orders.id, id))
         .returning();

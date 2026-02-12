@@ -19,6 +19,8 @@ import {
 } from "react-icons/fi";
 import { NotifySuccess, NotifyError, LoadingBtn } from "../toastify";
 import api from "../lib/axios";
+import { SearchableSelect } from "../components/customInputs/SearchableSelect";
+import { countries } from "../constants/countries";
 
 const stripePromise = loadStripe(
   import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "pk_test_your_key_here",
@@ -54,6 +56,10 @@ const CheckoutForm = () => {
           email: prev.email || profile?.email || "",
           phone: prev.phone || profile?.phone || "",
           address: prev.address || profile?.address || "",
+          city: prev.city || profile?.city || "",
+          state: prev.state || profile?.state || "",
+          zipCode: prev.zipCode || profile?.zipCode || "",
+          country: prev.country || profile?.country || "",
         }));
       })
       .catch(() => {
@@ -175,6 +181,20 @@ const CheckoutForm = () => {
           tax,
           total,
         });
+
+        // Save shipping info to user profile for future orders
+        try {
+          await api.put("/users/profile", {
+            address: shippingInfo.address,
+            city: shippingInfo.city,
+            state: shippingInfo.state,
+            zipCode: shippingInfo.zipCode,
+            country: shippingInfo.country,
+          });
+        } catch (profileError) {
+          // Silent fail - don't block order completion
+          console.error("Failed to update profile:", profileError);
+        }
 
         NotifySuccess("Payment successful! Order placed.");
         setTimeout(() => {
@@ -330,14 +350,15 @@ const CheckoutForm = () => {
                     <label className="block text-sm font-semibold text-foreground mb-2">
                       Country *
                     </label>
-                    <input
-                      type="text"
-                      name="country"
+                    <SearchableSelect
+                      options={countries}
                       value={shippingInfo.country}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-4 py-3 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-accent focus:border-transparent"
-                      placeholder="United States"
+                      onChange={(value) =>
+                        setShippingInfo({ ...shippingInfo, country: value })
+                      }
+                      placeholder="Select Country"
+                      returnType="id"
+                      height="h-[50px]"
                     />
                   </div>
                 </div>
@@ -360,6 +381,7 @@ const CheckoutForm = () => {
                 <div className="border border-border rounded-lg p-4 bg-secondary/10">
                   <CardElement
                     options={{
+                      hidePostalCode: true,
                       style: {
                         base: {
                           fontSize: "16px",

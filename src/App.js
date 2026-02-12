@@ -4,7 +4,11 @@ import { AuthProvider } from "./context/AuthContext";
 import Footer from "./components/Footer";
 import { Header } from "./components/Header";
 import PageNotFound from "./components/PageNotFound";
-import { ProtectedRoute, AdminRoute } from "./components/ProtectedRoute";
+import {
+  ProtectedRoute,
+  AdminRoute,
+  PublicOnlyRoute,
+} from "./components/ProtectedRoute";
 
 // import pages
 import Home from "./pages/Home";
@@ -16,6 +20,8 @@ import Checkout from "./pages/Checkout";
 import CartPage from "./pages/Cart";
 import Orders from "./pages/Orders";
 import Profile from "./pages/Profile";
+import Login from "./pages/auth/Login";
+import Register from "./pages/auth/Register";
 import AdminDashboard from "./pages/dashboard/AdminDashboard";
 import UserDashboard from "./pages/dashboard/UserDashboard";
 import ManageProducts from "./pages/dashboard/ManageProducts";
@@ -35,6 +41,24 @@ const AppContent = () => {
           <Route path="/product/:id" element={<ProductDetails />} />
           <Route path="/products" element={<Products />} />
           <Route path="/verify-email" element={<UserVerification />} />
+
+          {/* Auth Routes - Only accessible when NOT logged in */}
+          <Route
+            path="/login"
+            element={
+              <PublicOnlyRoute>
+                <Login />
+              </PublicOnlyRoute>
+            }
+          />
+          <Route
+            path="/register"
+            element={
+              <PublicOnlyRoute>
+                <Register />
+              </PublicOnlyRoute>
+            }
+          />
 
           {/* Protected Routes - Require Authentication */}
           <Route

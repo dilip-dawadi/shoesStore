@@ -140,7 +140,8 @@ const Orders = () => {
                   <div className="flex flex-col md:flex-row md:items-center justify-between">
                     <div className="mb-2 md:mb-0">
                       <h3 className="text-lg font-bold text-foreground">
-                        Order #{order.id?.slice(-8)}
+                        Order #
+                        {order.orderNumber || String(order.id).padStart(8, "0")}
                       </h3>
                       <p className="text-sm text-muted-foreground">
                         Placed on{" "}
@@ -181,7 +182,11 @@ const Orders = () => {
                           </p>
                         </div>
                         <span className="text-sm font-bold text-foreground">
-                          ${(item.price * item.quantity).toFixed(2)}
+                          $
+                          {(
+                            (Number(item.price) || 0) *
+                            (Number(item.quantity) || 0)
+                          ).toFixed(2)}
                         </span>
                       </div>
                     ))}
@@ -192,19 +197,19 @@ const Orders = () => {
                     <div className="flex justify-between mb-2">
                       <span className="text-muted-foreground">Subtotal:</span>
                       <span className="font-semibold text-foreground">
-                        ${order.subtotal?.toFixed(2)}
+                        ${(Number(order.subtotal) || 0).toFixed(2)}
                       </span>
                     </div>
                     <div className="flex justify-between mb-2">
                       <span className="text-muted-foreground">Shipping:</span>
                       <span className="font-semibold text-foreground">
-                        ${order.shipping?.toFixed(2) || "0.00"}
+                        ${(Number(order.shipping) || 0).toFixed(2)}
                       </span>
                     </div>
                     <div className="flex justify-between mb-2">
                       <span className="text-muted-foreground">Tax:</span>
                       <span className="font-semibold text-foreground">
-                        ${order.tax?.toFixed(2) || "0.00"}
+                        ${(Number(order.tax) || 0).toFixed(2)}
                       </span>
                     </div>
                     <div className="border-t border-border pt-2 mt-2 flex justify-between">
@@ -212,7 +217,12 @@ const Orders = () => {
                         Total:
                       </span>
                       <span className="text-lg font-bold text-primary">
-                        ${order.total?.toFixed(2)}
+                        $
+                        {(
+                          Number(order.total) ||
+                          Number(order.totalAmount) ||
+                          0
+                        ).toFixed(2)}
                       </span>
                     </div>
                   </div>

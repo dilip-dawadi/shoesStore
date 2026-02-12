@@ -77,7 +77,7 @@ export const ProtectedRoute = ({ children }) => {
 
   if (!isAuthenticated) {
     // Save the attempted location so we can redirect after login
-    return <Navigate to="/" state={{ from: location }} replace />;
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   return children;
@@ -99,7 +99,9 @@ export const AdminRoute = ({ children }) => {
         NotifyWarning("Please login to access the admin panel");
         setHasNotified(true);
       } else if (!isAdmin) {
-        NotifyError("Access denied. Admin privileges required.");
+        NotifyError(
+          "Access denied. You don't have admin privileges to access this page.",
+        );
         setHasNotified(true);
       }
     }
@@ -112,7 +114,7 @@ export const AdminRoute = ({ children }) => {
 
   if (!isAuthenticated) {
     // Save the attempted location
-    return <Navigate to="/" state={{ from: location }} replace />;
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   if (!isAdmin) {
@@ -128,14 +130,16 @@ export const AdminRoute = ({ children }) => {
  * Like login/register pages
  */
 export const PublicOnlyRoute = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, isAdmin, loading } = useAuth();
 
   if (loading) {
     return <PageLoadingSkeleton message="Loading..." />;
   }
 
   if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
+    // Redirect to appropriate dashboard based on role
+    const redirectTo = isAdmin ? "/admin" : "/dashboard";
+    return <Navigate to={redirectTo} replace />;
   }
 
   return children;

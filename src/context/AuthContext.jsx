@@ -32,6 +32,9 @@ export const AuthProvider = ({ children }) => {
 
   const login = (userData) => {
     setUser(userData);
+    // Clear any stored redirect path after successful login
+    // The Login page will handle the actual redirect
+    sessionStorage.removeItem("redirectAfterLogin");
   };
 
   const logout = async () => {

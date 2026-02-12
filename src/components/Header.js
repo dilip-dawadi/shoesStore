@@ -1,6 +1,5 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
-import Auth from "./Model/AuthModel";
 import { useLogout } from "../hooks/useAuth";
 import { useAuth } from "../context/AuthContext";
 import { Button } from "./ui/button";
@@ -26,7 +25,6 @@ import {
 } from "react-icons/fi";
 
 export const Header = () => {
-  const [IsSignup, setIsSignup] = React.useState(true);
   const navigate = useNavigate();
   const { user, isAuthenticated, isAdmin, logout: contextLogout } = useAuth();
   const { mutate: logoutMutation } = useLogout();
@@ -86,30 +84,12 @@ export const Header = () => {
         <div className="hidden md:flex items-center gap-6">
           {!isAuthenticated ? (
             <>
-              <Button
-                variant={!IsSignup ? "default" : "ghost"}
-                onClick={() => {
-                  setIsSignup(false);
-                }}
-              >
-                <Auth
-                  IsSignup={IsSignup}
-                  setIsSignup={setIsSignup}
-                  text={"Log in"}
-                />
-              </Button>
-              <Button
-                variant={IsSignup ? "default" : "ghost"}
-                onClick={() => {
-                  setIsSignup(true);
-                }}
-              >
-                <Auth
-                  IsSignup={IsSignup}
-                  setIsSignup={setIsSignup}
-                  text={"Sign up"}
-                />
-              </Button>
+              <Link to="/login">
+                <Button variant="ghost">Log in</Button>
+              </Link>
+              <Link to="/register">
+                <Button variant="default">Sign up</Button>
+              </Link>
             </>
           ) : (
             <>
@@ -158,8 +138,6 @@ export const Header = () => {
           )}
         </div>
         <MobileMenu
-          IsSignup={IsSignup}
-          setIsSignup={setIsSignup}
           isAuthenticated={isAuthenticated}
           handleLogout={handleLogout}
           user={user}
@@ -172,8 +150,6 @@ export const Header = () => {
 };
 
 function MobileMenu({
-  IsSignup,
-  setIsSignup,
   handleLogout,
   isAuthenticated,
   user,
@@ -266,28 +242,16 @@ function MobileMenu({
             <>
               <DropdownMenuSeparator />
               <div className="p-2 space-y-2">
-                <Button
-                  variant={!IsSignup ? "default" : "outline"}
-                  onClick={() => setIsSignup(false)}
-                  className="w-full"
-                >
-                  <Auth
-                    IsSignup={IsSignup}
-                    setIsSignup={setIsSignup}
-                    text={"Log in"}
-                  />
-                </Button>
-                <Button
-                  variant={IsSignup ? "default" : "outline"}
-                  onClick={() => setIsSignup(true)}
-                  className="w-full"
-                >
-                  <Auth
-                    IsSignup={IsSignup}
-                    setIsSignup={setIsSignup}
-                    text={"Sign up"}
-                  />
-                </Button>
+                <Link to="/login" className="block">
+                  <Button variant="outline" className="w-full">
+                    Log in
+                  </Button>
+                </Link>
+                <Link to="/register" className="block">
+                  <Button variant="default" className="w-full">
+                    Sign up
+                  </Button>
+                </Link>
               </div>
             </>
           )}

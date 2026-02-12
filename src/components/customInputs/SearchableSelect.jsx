@@ -126,7 +126,7 @@ export function SearchableSelect({
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="p-0 min-w-[var(--radix-popover-trigger-width)] w-[var(--radix-popover-trigger-width)] rounded-lg max-h-[300px] overflow-y-auto pointer-events-auto"
+        className="p-0 min-w-[var(--radix-popover-trigger-width)] w-[var(--radix-popover-trigger-width)] rounded-lg max-h-[300px] overflow-hidden pointer-events-auto bg-white shadow-lg border border-border"
         align="start"
         sideOffset={4}
         avoidCollisions={false}
@@ -134,19 +134,22 @@ export function SearchableSelect({
         onMouseEnter={() => setIsMouseInside(true)}
         onMouseLeave={() => setIsMouseInside(false)}
       >
-        <Command shouldFilter={true}>
+        <Command shouldFilter={true} className="bg-white">
           <CommandInput
             placeholder={`Search ${
               placeholder.split(" ")[1] || placeholder
             }...`}
+            className="h-12 px-3 my-2 text-sm border-b border-border"
             onFocus={(e) => {
               if (!autoFocusSearch) {
                 e.target.blur();
               }
             }}
           />
-          <CommandEmpty>No results found.</CommandEmpty>
-          <CommandGroup className="max-h-[250px] overflow-y-auto">
+          <CommandEmpty className="py-6 text-center text-sm text-muted-foreground">
+            No results found.
+          </CommandEmpty>
+          <CommandGroup className="max-h-[250px] overflow-y-auto p-2">
             {options.map((o, index) => {
               const isSelected =
                 returnType === "id" ? value === o.id : value === o.label;
@@ -158,21 +161,23 @@ export function SearchableSelect({
                     onChange(returnType === "id" ? o.id : o.label);
                     setOpen(false);
                   }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onChange(returnType === "id" ? o.id : o.label);
+                    setOpen(false);
+                  }}
                   onMouseEnter={() => setHasInteracted(true)}
                   className={cn(
-                    "flex justify-between cursor-pointer py-2 rounded-md my-1",
+                    "flex justify-between cursor-pointer px-3 py-2.5 rounded-md my-0.5 transition-colors",
                     isSelected
-                      ? "bg-accent text-accent-foreground"
-                      : !value && !hasInteracted && index === 0
-                        ? "bg-accent/50"
-                        : "hover:bg-accent/10",
-                    !isMouseInside &&
-                      !isSelected &&
-                      "data-[selected=true]:bg-accent/10",
+                      ? "bg-primary/10 text-primary font-medium"
+                      : "hover:bg-primary/5 text-foreground",
+                    "aria-selected:bg-primary/5",
                   )}
                 >
                   {formatValue(o.label)}
-                  {isSelected && <Check className="h-4 w-4" />}
+                  {isSelected && <Check className="h-4 w-4 text-primary" />}
                 </CommandItem>
               );
             })}

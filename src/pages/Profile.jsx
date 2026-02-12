@@ -12,6 +12,8 @@ import {
   FiX,
 } from "react-icons/fi";
 import { NotifySuccess, NotifyError } from "../toastify";
+import { SearchableSelect } from "../components/customInputs/SearchableSelect";
+import { countries } from "../constants/countries";
 
 const Profile = () => {
   const queryClient = useQueryClient();
@@ -21,6 +23,10 @@ const Profile = () => {
     email: "",
     phone: "",
     address: "",
+    city: "",
+    state: "",
+    zipCode: "",
+    country: "",
   });
 
   const { data: user, isLoading } = useQuery({
@@ -39,6 +45,10 @@ const Profile = () => {
         email: user.email || "",
         phone: user.phone || "",
         address: user.address || "",
+        city: user.city || "",
+        state: user.state || "",
+        zipCode: user.zipCode || "",
+        country: user.country || "",
       });
     }
   }, [user]);
@@ -72,6 +82,10 @@ const Profile = () => {
 
   const handleCancel = () => {
     setFormData({
+      city: user?.city || "",
+      state: user?.state || "",
+      zipCode: user?.zipCode || "",
+      country: user?.country || "",
       name: user?.name || "",
       email: user?.email || "",
       phone: user?.phone || "",
@@ -222,6 +236,72 @@ const Profile = () => {
                       className="w-full px-4 py-3 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-accent focus:border-transparent disabled:bg-secondary/20 disabled:cursor-not-allowed resize-none"
                       placeholder="Enter your full address"
                     />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-foreground mb-2">
+                        City
+                      </label>
+                      <input
+                        type="text"
+                        name="city"
+                        value={formData.city}
+                        onChange={handleInputChange}
+                        disabled={!isEditing}
+                        className="w-full px-4 py-3 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-accent focus:border-transparent disabled:bg-secondary/20 disabled:cursor-not-allowed"
+                        placeholder="City"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-foreground mb-2">
+                        State/Province
+                      </label>
+                      <input
+                        type="text"
+                        name="state"
+                        value={formData.state}
+                        onChange={handleInputChange}
+                        disabled={!isEditing}
+                        className="w-full px-4 py-3 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-accent focus:border-transparent disabled:bg-secondary/20 disabled:cursor-not-allowed"
+                        placeholder="State/Province"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-foreground mb-2">
+                        ZIP/Postal Code
+                      </label>
+                      <input
+                        type="text"
+                        name="zipCode"
+                        value={formData.zipCode}
+                        onChange={handleInputChange}
+                        disabled={!isEditing}
+                        className="w-full px-4 py-3 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-accent focus:border-transparent disabled:bg-secondary/20 disabled:cursor-not-allowed"
+                        placeholder="ZIP/Postal Code"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-foreground mb-2">
+                        Country
+                      </label>
+                      <SearchableSelect
+                        options={countries}
+                        value={formData.country}
+                        onChange={(value) =>
+                          setFormData({ ...formData, country: value })
+                        }
+                        placeholder="Select Country"
+                        returnType="id"
+                        height="h-[50px]"
+                        disabled={!isEditing}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>

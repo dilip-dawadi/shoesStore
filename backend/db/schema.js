@@ -18,6 +18,10 @@ export const users = pgTable("users", {
   name: varchar("name", { length: 255 }),
   phone: varchar("phone", { length: 20 }),
   address: text("address"),
+  city: varchar("city", { length: 100 }),
+  state: varchar("state", { length: 100 }),
+  zipCode: varchar("zip_code", { length: 20 }),
+  country: varchar("country", { length: 2 }), // ISO 3166-1 alpha-2 country code
   role: varchar("role", { length: 50 }).default("user"),
   isVerified: boolean("is_verified").default(false),
   verificationToken: text("verification_token"),
