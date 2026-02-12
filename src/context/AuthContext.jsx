@@ -1,48 +1,27 @@
 import { createContext, useContext, useState, useEffect } from "react";
-import { jwtDecode } from "jwt-decode";
+import api from "../lib/axios";
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Initialize auth from localStorage
+  // Initialize auth from session
   useEffect(() => {
-    const initAuth = () => {
+    const initAuth = async () => {
       try {
-        const storedToken = localStorage.getItem("token");
-        const storedUser = localStorage.getItem("user");
+        // Check if user has active session
+        const { data } = await api.get("/auth/session");
 
-        if (storedToken) {
-          // Verify token is not expired
-          const decoded = jwtDecode(storedToken);
-          const isExpired = decoded.exp * 1000 < Date.now();
-
-          if (isExpired) {
-            // Token expired, clear storage
-            logout();
-          } else {
-            setToken(storedToken);
-            if (storedUser) {
-              const parsedUser = JSON.parse(storedUser);
-              setUser(parsedUser);
-            } else {
-              // Decode user from token
-              const userFromToken = {
-                id: decoded.id || decoded.userId,
-                email: decoded.email,
-                name: decoded.name,
-                role: decoded.role || "user",
-              };
-              setUser(userFromToken);
-            }
-          }
+        if (data.isAuthenticated && data.user) {
+          setUser(data.user);
+        } else {
+          setUser(null);
         }
       } catch (error) {
         console.error("Auth initialization error:", error);
-        logout();
+        setUser(null);
       } finally {
         setLoading(false);
       }
@@ -51,33 +30,30 @@ export const AuthProvider = ({ children }) => {
     initAuth();
   }, []);
 
-  const login = (tokenData, userData) => {
-    localStorage.setItem("token", tokenData);
-    localStorage.setItem("user", JSON.stringify(userData));
-    setToken(tokenData);
+  const login = (userData) => {
     setUser(userData);
   };
 
-  const logout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    localStorage.removeItem("authenticate");
-    setToken(null);
-    setUser(null);
+  const logout = async () => {
+    try {
+      await api.post("/auth/logout");
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      setUser(null);
+    }
   };
 
   const updateUser = (updates) => {
     const updated = { ...user, ...updates };
     setUser(updated);
-    localStorage.setItem("user", JSON.stringify(updated));
   };
 
-  const isAuthenticated = !!token && !!user;
+  const isAuthenticated = !!user;
   const isAdmin = user?.role === "admin";
 
   const value = {
     user,
-    token,
     loading,
     isAuthenticated,
     isAdmin,

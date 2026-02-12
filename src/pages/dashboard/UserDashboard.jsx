@@ -16,12 +16,6 @@ const UserDashboard = () => {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
-  React.useEffect(() => {
-    if (!isAuthenticated) {
-      navigate("/");
-    }
-  }, [isAuthenticated, navigate]);
-
   const { data: cart } = useQuery({
     queryKey: ["cart"],
     queryFn: async () => {
@@ -48,8 +42,6 @@ const UserDashboard = () => {
     },
     enabled: isAuthenticated,
   });
-
-  if (!isAuthenticated) return null;
 
   return (
     <div className="container mx-auto py-8 px-4">

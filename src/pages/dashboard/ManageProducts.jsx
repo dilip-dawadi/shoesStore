@@ -16,18 +16,10 @@ import { Package, Edit, Trash2, Plus, ArrowLeft, Search } from "lucide-react";
 import { NotifySuccess, NotifyError } from "../../toastify";
 
 const ManageProducts = () => {
-  const { isAdmin, isAuthenticated } = useAuth();
+  const { isAdmin } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
-
-  React.useEffect(() => {
-    if (!isAuthenticated) {
-      navigate("/");
-    } else if (!isAdmin) {
-      navigate("/dashboard");
-    }
-  }, [isAuthenticated, isAdmin, navigate]);
 
   const { data: products, isLoading } = useQuery({
     queryKey: ["admin-products"],
@@ -63,8 +55,6 @@ const ManageProducts = () => {
       product.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       product.brand?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
-
-  if (!isAdmin) return null;
 
   return (
     <div className="container mx-auto py-8 px-4 min-h-screen">

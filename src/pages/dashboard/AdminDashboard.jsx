@@ -13,16 +13,8 @@ import { Button } from "../../components/ui/button";
 import { Package, Users, ShoppingCart, DollarSign } from "lucide-react";
 
 const AdminDashboard = () => {
-  const { isAdmin, isAuthenticated } = useAuth();
+  const { isAdmin } = useAuth();
   const navigate = useNavigate();
-
-  React.useEffect(() => {
-    if (!isAuthenticated) {
-      navigate("/");
-    } else if (!isAdmin) {
-      navigate("/dashboard");
-    }
-  }, [isAuthenticated, isAdmin, navigate]);
 
   const { data: stats, isLoading } = useQuery({
     queryKey: ["admin-stats"],
@@ -37,8 +29,6 @@ const AdminDashboard = () => {
     },
     enabled: isAdmin,
   });
-
-  if (!isAdmin) return null;
 
   return (
     <div className="container mx-auto py-8 px-4">

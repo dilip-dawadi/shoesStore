@@ -1,7 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
-import axios from "axios";
+import api from "../lib/axios";
 import {
   FiPackage,
   FiClock,
@@ -14,15 +14,7 @@ const Orders = () => {
   const { data, isLoading, error } = useQuery({
     queryKey: ["orders"],
     queryFn: async () => {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/orders`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
+      const response = await api.get("/orders");
       return response.data;
     },
   });

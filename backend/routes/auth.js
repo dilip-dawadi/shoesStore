@@ -123,30 +123,33 @@ router.post(
           .json({ message: "Please verify your email first" });
       }
 
-      // Generate JWT with proper user data
-      const token = jwt.sign(
-        {
-          id: user.id,
-          userId: user.id,
-          email: user.email,
-          role: user.role || "user",
-          name: user.name,
-        },
-        process.env.JWT_SECRET,
-        { expiresIn: "7d" },
-      );
-
-      const responseData = {
-        success: true,
-        token,
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role || "user",
-        },
+      // Store user in session
+      req.session.userId = user.id;
+      req.session.user = {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role || "user",
       };
-      res.json(responseData);
+
+      // Save session before responding
+      req.session.save((err) => {
+        if (err) {
+          console.error("Session save error:", err);
+          return res.status(500).json({ message: "Session error" });
+        }
+
+        const responseData = {
+          success: true,
+          user: {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role || "user",
+          },
+        };
+        res.json(responseData);
+      });
     } catch (error) {
       console.error("Login error:", error);
       res.status(500).json({ message: "Server error" });
@@ -240,6 +243,37 @@ router.post("/reset-password", async (req, res) => {
   } catch (error) {
     console.error("Reset password error:", error);
     res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Logout - destroy session
+router.post("/logout", (req, res) => {
+  const sessionName = req.app.get("sessionName") || "sessionId";
+
+  req.session.destroy((err) => {
+    if (err) {
+      console.error("Logout error:", err);
+      return res.status(500).json({ message: "Logout failed" });
+    }
+    // Clear both possible cookie names
+    res.clearCookie(sessionName, { path: "/" });
+    res.clearCookie("connect.sid", { path: "/" });
+    res.json({ success: true, message: "Logged out successfully" });
+  });
+});
+
+// Get current session/user
+router.get("/session", (req, res) => {
+  if (req.session && req.session.userId) {
+    res.json({
+      isAuthenticated: true,
+      user: req.session.user,
+    });
+  } else {
+    res.json({
+      isAuthenticated: false,
+      user: null,
+    });
   }
 });
 

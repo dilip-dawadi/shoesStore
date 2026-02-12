@@ -12,9 +12,10 @@ import {
   useRemoveFromWishlist,
 } from "../hooks/useWishlist";
 import { LoadingCircle, NotifyWarning } from "../toastify";
+import { useAuth } from "../context/AuthContext";
 
 const Product = ({ Products }) => {
-  const token = localStorage.getItem("authenticate");
+  const { isAuthenticated } = useAuth();
   const { data: wishlist } = useWishlist();
   const { mutate: addToWishlist, isPending: isAdding } = useAddToWishlist();
   const { mutate: removeFromWishlist, isPending: isRemoving } =
@@ -29,7 +30,7 @@ const Product = ({ Products }) => {
     return item?.id;
   };
   return (
-    <Card className="px-3 pt-3 rounded-lg rounded-tl-[90px] w-full max-w-[352px] mx-auto cursor-pointer hover:shadow-lg transition relative group">
+    <Card className="px-3 pt-3 rounded-lg rounded-tl-[90px] w-full max-w-88 mx-auto cursor-pointer hover:shadow-lg transition relative group">
       <center>
         <img
           className="mb-3 rounded-tl-[90px] min-w-[240px] max-w-[240px] min-h-[240px] max-h-[240px] object-cover"
@@ -43,7 +44,7 @@ const Product = ({ Products }) => {
             <BsEyeFill className="text-xl" />
           </Button>
         </Link>
-        {!token ? (
+        {!isAuthenticated ? (
           <FaRegHeart
             className="text-2xl 
           text-primary transition duration-500 
@@ -55,9 +56,7 @@ const Product = ({ Products }) => {
             }}
             title="Add to WishList"
             onClick={() =>
-              NotifyWarning(
-                "You must login or register to add items to your wishlist",
-              )
+              NotifyWarning("Please login to add items to your wishlist")
             }
           />
         ) : wishListIDs?.find((item) => item === Products?.id) ? (

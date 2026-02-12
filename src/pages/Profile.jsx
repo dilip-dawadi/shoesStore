@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import axios from "axios";
+import api from "../lib/axios";
 import {
   FiUser,
   FiMail,
@@ -26,15 +26,7 @@ const Profile = () => {
   const { data: user, isLoading } = useQuery({
     queryKey: ["profile"],
     queryFn: async () => {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/users/profile`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
+      const response = await api.get("/users/profile");
       return response.data.data;
     },
   });
@@ -53,16 +45,7 @@ const Profile = () => {
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data) => {
-      const token = localStorage.getItem("token");
-      const response = await axios.put(
-        `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/users/profile`,
-        data,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
+      const response = await api.put("/users/profile", data);
       return response.data;
     },
     onSuccess: () => {

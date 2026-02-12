@@ -147,7 +147,7 @@ const ProductList = ({
         )}
         {runningData && runningData?.length !== 0 && (
           <>
-            <div className="w-full h-[1px] bg-[#957272] mt-12 mb-10"></div>
+            <div className="w-full h-px bg-[#957272] mt-12 mb-10"></div>
             <div
               className="text-center text-[1.75rem] font-bold text-black mb-2"
               style={style}
@@ -155,7 +155,7 @@ const ProductList = ({
               Running Shoe {category ? `for ${category}` : ""}
             </div>
             <div
-              className="text-center text-gray-700 mb-7 mt-3 mx-auto text-md font-[400] max-w-2xl italic"
+              className="text-center text-gray-700 mb-7 mt-3 mx-auto text-md font-normal max-w-2xl italic"
               style={style}
             >
               Fluffy sneakers. Cushy slippers. Ridiculously fluffy pants. Home

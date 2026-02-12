@@ -15,10 +15,8 @@ export const authApi = {
 export const useLogin = () => {
   return useMutation({
     mutationFn: authApi.login,
-    onSuccess: (data) => {
-      localStorage.setItem("token", data.data.token);
-      localStorage.setItem("user", JSON.stringify(data.data.user));
-      // Reload to update header
+    onSuccess: () => {
+      // Session is now managed by cookies, just reload
       window.location.reload();
     },
   });
@@ -36,16 +34,10 @@ export const useLogout = () => {
   return useMutation({
     mutationFn: authApi.logout,
     onSuccess: () => {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      localStorage.removeItem("authenticate");
       window.location.href = "/";
     },
     onError: () => {
-      // Even if API fails, clear local storage
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      localStorage.removeItem("authenticate");
+      // Even if API fails, redirect
       window.location.href = "/";
     },
   });

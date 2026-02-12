@@ -26,19 +26,11 @@ import {
 import { NotifySuccess, NotifyError } from "../../toastify";
 
 const ManageUsers = () => {
-  const { isAdmin, isAuthenticated } = useAuth();
+  const { isAdmin } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRole, setFilterRole] = useState("all");
-
-  React.useEffect(() => {
-    if (!isAuthenticated) {
-      navigate("/");
-    } else if (!isAdmin) {
-      navigate("/dashboard");
-    }
-  }, [isAuthenticated, isAdmin, navigate]);
 
   const { data: users, isLoading } = useQuery({
     queryKey: ["admin-users"],
@@ -104,8 +96,6 @@ const ManageUsers = () => {
 
     return matchesSearch && matchesRole;
   });
-
-  if (!isAdmin) return null;
 
   return (
     <div className="container mx-auto py-8 px-4 min-h-screen">

@@ -18,7 +18,7 @@ import {
   FiShoppingBag,
 } from "react-icons/fi";
 import { NotifySuccess, NotifyError, LoadingBtn } from "../toastify";
-import axios from "axios";
+import api from "../lib/axios";
 
 const stripePromise = loadStripe(
   import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "pk_test_your_key_here",
@@ -42,19 +42,9 @@ const CheckoutForm = () => {
   });
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-
     let isMounted = true;
-    axios
-      .get(
-        `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/users/profile`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      )
+    api
+      .get("/users/profile")
       .then((response) => {
         if (!isMounted) return;
         const profile = response.data?.data || response.data;
@@ -134,24 +124,15 @@ const CheckoutForm = () => {
 
     try {
       // Create payment intent on backend
-      const token = localStorage.getItem("token");
-      const response = await axios.post(
-        `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/orders/create-payment-intent`,
-        {
-          amount: Math.round(total * 100), // Convert to cents
-          shippingInfo,
-          items: cartItems.map((item) => ({
-            productId: item.productId,
-            quantity: item.quantity,
-            price: item.price,
-          })),
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
+      const response = await api.post("/orders/create-payment-intent", {
+        amount: Math.round(total * 100), // Convert to cents
+        shippingInfo,
+        items: cartItems.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          price: item.price,
+        })),
+      });
 
       const { clientSecret } = response.data;
 
@@ -185,23 +166,15 @@ const CheckoutForm = () => {
 
       if (paymentIntent.status === "succeeded") {
         // Create order on backend
-        await axios.post(
-          `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/orders`,
-          {
-            paymentIntentId: paymentIntent.id,
-            shippingInfo,
-            items: cartItems,
-            subtotal,
-            shipping,
-            tax,
-            total,
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          },
-        );
+        await api.post("/orders", {
+          paymentIntentId: paymentIntent.id,
+          shippingInfo,
+          items: cartItems,
+          subtotal,
+          shipping,
+          tax,
+          total,
+        });
 
         NotifySuccess("Payment successful! Order placed.");
         setTimeout(() => {
