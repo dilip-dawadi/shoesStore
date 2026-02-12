@@ -19,7 +19,7 @@ import {
 } from "react-icons/fi";
 import { NotifySuccess, NotifyError, LoadingBtn } from "../toastify";
 import api from "../lib/axios";
-import { SearchableSelect } from "../components/customInputs/SearchableSelect";
+import { SimpleSelect } from "../components/customInputs/SimpleSelect";
 import { countries } from "../constants/countries";
 
 const stripePromise = loadStripe(
@@ -350,7 +350,7 @@ const CheckoutForm = () => {
                     <label className="block text-sm font-semibold text-foreground mb-2">
                       Country *
                     </label>
-                    <SearchableSelect
+                    <SimpleSelect
                       options={countries}
                       value={shippingInfo.country}
                       onChange={(value) =>

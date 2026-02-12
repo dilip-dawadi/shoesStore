@@ -12,7 +12,7 @@ import {
   FiX,
 } from "react-icons/fi";
 import { NotifySuccess, NotifyError } from "../toastify";
-import { SearchableSelect } from "../components/customInputs/SearchableSelect";
+import { SimpleSelect } from "../components/customInputs/SimpleSelect";
 import { countries } from "../constants/countries";
 
 const Profile = () => {
@@ -290,7 +290,7 @@ const Profile = () => {
                       <label className="block text-sm font-semibold text-foreground mb-2">
                         Country
                       </label>
-                      <SearchableSelect
+                      <SimpleSelect
                         options={countries}
                         value={formData.country}
                         onChange={(value) =>

@@ -73,7 +73,6 @@ export function SearchableSelect({
         if (disabled) return;
         setOpen(newOpen);
       }}
-      modal={true}
     >
       <PopoverTrigger asChild>
         <Button
@@ -126,13 +125,16 @@ export function SearchableSelect({
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="p-0 min-w-[var(--radix-popover-trigger-width)] w-[var(--radix-popover-trigger-width)] rounded-lg max-h-[300px] overflow-hidden pointer-events-auto bg-white shadow-lg border border-border"
+        className="p-0 min-w-[var(--radix-popover-trigger-width)] w-[var(--radix-popover-trigger-width)] rounded-lg max-h-[300px] overflow-hidden bg-white shadow-lg border border-border z-[100]"
         align="start"
         sideOffset={4}
         avoidCollisions={false}
         onWheel={(e) => e.stopPropagation()}
         onMouseEnter={() => setIsMouseInside(true)}
         onMouseLeave={() => setIsMouseInside(false)}
+        onOpenAutoFocus={(e) => {
+          e.preventDefault();
+        }}
       >
         <Command shouldFilter={true} className="bg-white">
           <CommandInput
@@ -153,27 +155,22 @@ export function SearchableSelect({
             {options.map((o, index) => {
               const isSelected =
                 returnType === "id" ? value === o.id : value === o.label;
+
+              const handleSelect = () => {
+                onChange(returnType === "id" ? o.id : o.label);
+                setOpen(false);
+              };
+
               return (
                 <CommandItem
                   key={o.id}
                   value={o.label}
-                  onSelect={() => {
-                    onChange(returnType === "id" ? o.id : o.label);
-                    setOpen(false);
-                  }}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onChange(returnType === "id" ? o.id : o.label);
-                    setOpen(false);
-                  }}
-                  onMouseEnter={() => setHasInteracted(true)}
+                  onSelect={handleSelect}
                   className={cn(
-                    "flex justify-between cursor-pointer px-3 py-2.5 rounded-md my-0.5 transition-colors",
+                    "flex justify-between px-3 py-2.5 rounded-md my-0.5 transition-colors cursor-pointer",
                     isSelected
                       ? "bg-primary/10 text-primary font-medium"
                       : "hover:bg-primary/5 text-foreground",
-                    "aria-selected:bg-primary/5",
                   )}
                 >
                   {formatValue(o.label)}

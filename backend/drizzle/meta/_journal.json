@@ -22,6 +22,13 @@
       "when": 1770445075229,
       "tag": "0002_premium_madelyne_pryor",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1770868169508,
+      "tag": "0003_classy_deadpool",
+      "breakpoints": true
     }
   ]
 }
