@@ -5,6 +5,53 @@ import { NotifyWarning, NotifyError } from "../toastify";
 import { Skeleton } from "./ui/skeleton";
 
 /**
+ * MinimalLoadingScreen - Professional minimal loading screen for all pages
+ */
+const MinimalLoadingScreen = ({ message = "Loading" }) => {
+  React.useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, []);
+
+  return (
+    <div className="fixed inset-0 flex flex-col items-center justify-center bg-background z-50">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-background/95 backdrop-blur-sm" />
+
+      {/* Content */}
+      <div className="relative z-10 text-center">
+        {/* Centered spinner */}
+        <div className="relative w-16 h-16 mb-6">
+          <div className="absolute inset-0 rounded-full border-4 border-muted"></div>
+          <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-primary border-r-primary/50 animate-spin"></div>
+        </div>
+
+        {/* Message */}
+        <div>
+          <h2 className="text-lg font-semibold text-foreground mb-2">
+            {message}
+          </h2>
+          <p className="text-sm text-muted-foreground">Please wait...</p>
+        </div>
+
+        {/* Subtle dots animation */}
+        <div className="flex gap-1.5 mt-6 justify-center">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="w-2 h-2 rounded-full bg-primary/70 animate-bounce"
+              style={{ animationDelay: `${i * 0.15}s` }}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/**
  * PageLoadingSkeleton - Beautiful loading skeleton for protected routes
  */
 const PageLoadingSkeleton = ({ message = "Loading..." }) => {
@@ -59,9 +106,10 @@ const PageLoadingSkeleton = ({ message = "Loading..." }) => {
  * Redirects to home page if user is not authenticated
  */
 export const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, loading, apiOnline } = useAuth();
+  const { isAuthenticated, loading, apiOnline, user } = useAuth();
   const location = useLocation();
   const [hasNotified, setHasNotified] = React.useState(false);
+  const optimisticAuth = isAuthenticated || (loading && !!user);
 
   React.useEffect(() => {
     if (apiOnline && !loading && !isAuthenticated && !hasNotified) {
@@ -72,7 +120,10 @@ export const ProtectedRoute = ({ children }) => {
 
   // Show loading state while checking authentication
   if (loading) {
-    return <PageLoadingSkeleton message="Checking authentication..." />;
+    if (optimisticAuth) {
+      return children;
+    }
+    return <MinimalLoadingScreen message="Checking authentication..." />;
   }
 
   if (!isAuthenticated) {
@@ -92,6 +143,9 @@ export const AdminRoute = ({ children }) => {
   const { isAuthenticated, isAdmin, loading, apiOnline, user } = useAuth();
   const location = useLocation();
   const [hasNotified, setHasNotified] = React.useState(false);
+  const optimisticAuth = isAuthenticated || (loading && !!user);
+  const optimisticAdmin =
+    isAdmin || (loading && user?.role === "admin" && isAuthenticated);
 
   React.useEffect(() => {
     if (apiOnline && !loading && !hasNotified) {
@@ -109,7 +163,10 @@ export const AdminRoute = ({ children }) => {
 
   // Show loading state while checking authentication
   if (loading) {
-    return <PageLoadingSkeleton message="Verifying admin access..." />;
+    if (optimisticAuth && optimisticAdmin) {
+      return children;
+    }
+    return <MinimalLoadingScreen message="Verifying admin access..." />;
   }
 
   if (!isAuthenticated) {
@@ -133,7 +190,7 @@ export const PublicOnlyRoute = ({ children }) => {
   const { isAuthenticated, isAdmin, loading } = useAuth();
 
   if (loading) {
-    return <PageLoadingSkeleton message="Loading..." />;
+    return <MinimalLoadingScreen message="Loading..." />;
   }
 
   if (isAuthenticated) {

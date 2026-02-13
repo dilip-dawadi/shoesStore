@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Routes, Route } from "react-router-dom";
 import { QueryProvider } from "./lib/react-query";
 import { AuthProvider } from "./context/AuthContext";
@@ -33,10 +33,42 @@ import Cart from "./components/cart";
 
 const AppContent = () => {
   const [apiOffline, setApiOffline] = useState(false);
+  const [offlineSince, setOfflineSince] = useState(null);
+  const [retryDelayMs, setRetryDelayMs] = useState(null);
+  const retryTimerRef = useRef(null);
+  const retryDelayRef = useRef(1000);
+
+  const apiBaseUrl =
+    import.meta.env.VITE_API_URL || "http://localhost:3001/api";
+  const healthUrl = apiBaseUrl.replace(/\/api\/?$/, "") + "/health";
+
+  const sendApiStatus = (online) => {
+    window.dispatchEvent(
+      new CustomEvent("api:status", {
+        detail: { online },
+      }),
+    );
+  };
+
+  const checkHealth = async () => {
+    try {
+      const response = await fetch(healthUrl, { cache: "no-store" });
+      if (response.ok) {
+        sendApiStatus(true);
+        return true;
+      }
+    } catch (error) {
+      // Ignore fetch errors and keep offline state.
+    }
+
+    sendApiStatus(false);
+    return false;
+  };
 
   useEffect(() => {
     const handleApiStatus = (event) => {
-      setApiOffline(!event.detail?.online);
+      const online = !!event.detail?.online;
+      setApiOffline(!online);
     };
 
     window.addEventListener("api:status", handleApiStatus);
@@ -45,19 +77,87 @@ const AppContent = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (apiOffline && !offlineSince) {
+      setOfflineSince(Date.now());
+    }
+
+    if (!apiOffline) {
+      setOfflineSince(null);
+      setRetryDelayMs(null);
+      retryDelayRef.current = 1000;
+
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
+    }
+  }, [apiOffline, offlineSince]);
+
+  useEffect(() => {
+    if (!apiOffline) {
+      return;
+    }
+
+    const scheduleRetry = () => {
+      const delay = Math.min(retryDelayRef.current, 15000);
+      setRetryDelayMs(delay);
+
+      retryTimerRef.current = setTimeout(async () => {
+        const ok = await checkHealth();
+
+        if (!ok) {
+          retryDelayRef.current = Math.min(retryDelayRef.current * 2, 15000);
+          scheduleRetry();
+        }
+      }, delay);
+    };
+
+    scheduleRetry();
+
+    return () => {
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
+    };
+  }, [apiOffline]);
+
+  const handleManualRetry = async () => {
+    retryDelayRef.current = 1000;
+    setRetryDelayMs(0);
+    await checkHealth();
+  };
+
   return (
     <>
       {apiOffline ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm">
-          <div className="rounded-lg border border-primary-200 bg-white px-6 py-5 text-center shadow-sm">
-            <div className="text-lg font-semibold text-primary-900">
-              Reconnecting...
+        <div className="fixed top-3 left-3 right-3 z-50 rounded-lg border border-primary-200 bg-white/95 px-4 py-3 shadow-sm backdrop-blur">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="text-sm font-semibold text-primary-900">
+                Backend offline. Reconnecting...
+              </div>
+              <div className="text-xs text-primary-600">
+                {retryDelayMs
+                  ? `Auto-retry in ~${Math.ceil(retryDelayMs / 1000)}s.`
+                  : "Auto-retry active."}
+                {offlineSince && Date.now() - offlineSince > 20000
+                  ? " Still offline. You can retry now."
+                  : ""}
+              </div>
             </div>
-            <div className="mt-1 text-sm text-primary-600">
-              Backend is restarting. We will reconnect automatically.
-            </div>
-            <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-primary-100">
-              <div className="h-full w-1/3 animate-pulse rounded-full bg-primary-500" />
+            <div className="flex items-center gap-3">
+              <div className="h-2 w-28 overflow-hidden rounded-full bg-primary-100">
+                <div className="h-full w-1/2 animate-pulse rounded-full bg-primary-500" />
+              </div>
+              <button
+                type="button"
+                className="rounded-md border border-primary-300 px-3 py-1 text-xs font-medium text-primary-700 hover:bg-primary-50"
+                onClick={handleManualRetry}
+              >
+                Retry now
+              </button>
             </div>
           </div>
         </div>

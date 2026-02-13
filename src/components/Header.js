@@ -26,8 +26,19 @@ import {
 
 export const Header = () => {
   const navigate = useNavigate();
-  const { user, isAuthenticated, isAdmin, logout: contextLogout } = useAuth();
+  const {
+    user,
+    isAuthenticated,
+    isAdmin,
+    loading,
+    logout: contextLogout,
+  } = useAuth();
   const { mutate: logoutMutation } = useLogout();
+
+  // Use cached user for optimistic state, but validate admin role
+  const optimisticAuth = isAuthenticated || (loading && !!user);
+  const optimisticAdmin =
+    isAdmin || (loading && user?.role === "admin" && isAuthenticated);
 
   const handleLogout = () => {
     logoutMutation(undefined, {
@@ -82,7 +93,7 @@ export const Header = () => {
           )}
         </nav>
         <div className="hidden md:flex items-center gap-6">
-          {!isAuthenticated ? (
+          {!optimisticAuth ? (
             <>
               <Link to="/login">
                 <Button variant="ghost">Log in</Button>
@@ -93,7 +104,7 @@ export const Header = () => {
             </>
           ) : (
             <>
-              {isAdmin && (
+              {optimisticAdmin && (
                 <Button
                   onClick={() => navigate("/admin")}
                   className="gap-2"
@@ -104,7 +115,7 @@ export const Header = () => {
                   <span className="hidden lg:inline">Admin</span>
                 </Button>
               )}
-              {!isAdmin && (
+              {!optimisticAdmin && (
                 <Button
                   onClick={() => navigate("/dashboard")}
                   className="gap-2"
@@ -116,7 +127,7 @@ export const Header = () => {
                 </Button>
               )}
               <div className="flex items-center gap-2">
-                {isAdmin && (
+                {optimisticAdmin && (
                   <Badge variant="default" className="text-xs">
                     Admin
                   </Badge>
@@ -138,10 +149,10 @@ export const Header = () => {
           )}
         </div>
         <MobileMenu
-          isAuthenticated={isAuthenticated}
+          isAuthenticated={optimisticAuth}
           handleLogout={handleLogout}
           user={user}
-          isAdmin={isAdmin}
+          isAdmin={optimisticAdmin}
           navigate={navigate}
         />
       </div>

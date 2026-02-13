@@ -3,10 +3,58 @@ import api from "../lib/axios";
 
 const AuthContext = createContext(null);
 
+// Secure in-memory cache with expiration (no localStorage/sessionStorage risk)
+const CACHE_DURATION_MS = 60 * 1000; // 60 seconds max cache
+
+let authCache = {
+  user: null,
+  timestamp: null,
+  isValid: () => {
+    if (!authCache.timestamp) return false;
+    return Date.now() - authCache.timestamp < CACHE_DURATION_MS;
+  },
+  set: (user) => {
+    authCache.user = user;
+    authCache.timestamp = Date.now();
+    // Also persist to sessionStorage during this browser session
+    if (user) {
+      try {
+        sessionStorage.setItem("auth:temp", JSON.stringify(user));
+      } catch (e) {
+        // Ignore
+      }
+    }
+  },
+  clear: () => {
+    authCache.user = null;
+    authCache.timestamp = null;
+    try {
+      sessionStorage.removeItem("auth:temp");
+    } catch (e) {
+      // Ignore
+    }
+  },
+  get: () => {
+    return authCache.isValid() ? authCache.user : null;
+  },
+  // Get temp fallback for fresh loads (will be cleared on logout)
+  getTempFallback: () => {
+    try {
+      const temp = sessionStorage.getItem("auth:temp");
+      return temp ? JSON.parse(temp) : null;
+    } catch (e) {
+      return null;
+    }
+  },
+};
+
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(
+    () => authCache.get() || authCache.getTempFallback(),
+  );
   const [loading, setLoading] = useState(true);
   const [apiOnline, setApiOnline] = useState(true);
+  const [sessionChecked, setSessionChecked] = useState(false);
 
   // Initialize auth from session
   useEffect(() => {
@@ -37,16 +85,20 @@ export const AuthProvider = ({ children }) => {
 
         if (data.isAuthenticated && data.user) {
           setUser(data.user);
+          authCache.set(data.user);
         } else {
           setUser(null);
+          authCache.clear();
         }
       } catch (error) {
         console.error("Auth initialization error:", error);
         if (error.response?.status === 401 || error.response?.status === 440) {
           setUser(null);
+          authCache.clear();
         }
       } finally {
         setLoading(false);
+        setSessionChecked(true);
       }
     };
 
@@ -54,7 +106,12 @@ export const AuthProvider = ({ children }) => {
   }, [apiOnline]);
 
   const login = (userData) => {
+    if (!userData || !userData.id) {
+      console.warn("Invalid user data on login");
+      return;
+    }
     setUser(userData);
+    authCache.set(userData);
     // Clear any stored redirect path after successful login
     // The Login page will handle the actual redirect
     sessionStorage.removeItem("redirectAfterLogin");
@@ -67,12 +124,18 @@ export const AuthProvider = ({ children }) => {
       console.error("Logout error:", error);
     } finally {
       setUser(null);
+      authCache.clear();
     }
   };
 
   const updateUser = (updates) => {
+    if (!user) {
+      console.warn("Cannot update user without authenticated session");
+      return;
+    }
     const updated = { ...user, ...updates };
     setUser(updated);
+    authCache.set(updated);
   };
 
   const isAuthenticated = !!user;
@@ -87,6 +150,7 @@ export const AuthProvider = ({ children }) => {
     logout,
     updateUser,
     apiOnline,
+    sessionChecked,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
