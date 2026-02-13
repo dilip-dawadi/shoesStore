@@ -56,6 +56,29 @@ export const AuthProvider = ({ children }) => {
   const [apiOnline, setApiOnline] = useState(true);
   const [sessionChecked, setSessionChecked] = useState(false);
 
+  // Function to fetch current session from backend
+  const fetchSession = async () => {
+    try {
+      const { data } = await api.get("/auth/session");
+      if (data.isAuthenticated && data.user) {
+        setUser(data.user);
+        authCache.set(data.user);
+      } else {
+        setUser(null);
+        authCache.clear();
+      }
+    } catch (error) {
+      console.error("Session fetch error:", error);
+      if (error.response?.status === 401 || error.response?.status === 440) {
+        setUser(null);
+        authCache.clear();
+      }
+    } finally {
+      setLoading(false);
+      setSessionChecked(true);
+    }
+  };
+
   // Initialize auth from session
   useEffect(() => {
     const handleApiStatus = (event) => {
@@ -79,31 +102,17 @@ export const AuthProvider = ({ children }) => {
     }
 
     const initAuth = async () => {
-      try {
-        // Check if user has active session
-        const { data } = await api.get("/auth/session");
-
-        if (data.isAuthenticated && data.user) {
-          setUser(data.user);
-          authCache.set(data.user);
-        } else {
-          setUser(null);
-          authCache.clear();
-        }
-      } catch (error) {
-        console.error("Auth initialization error:", error);
-        if (error.response?.status === 401 || error.response?.status === 440) {
-          setUser(null);
-          authCache.clear();
-        }
-      } finally {
-        setLoading(false);
-        setSessionChecked(true);
-      }
+      await fetchSession();
     };
 
     initAuth();
   }, [apiOnline]);
+
+  // Allow manual refresh of session (e.g., after login)
+  const refreshSession = () => {
+    setLoading(true);
+    fetchSession();
+  };
 
   const login = (userData) => {
     if (!userData || !userData.id) {
@@ -151,6 +160,7 @@ export const AuthProvider = ({ children }) => {
     updateUser,
     apiOnline,
     sessionChecked,
+    refreshSession,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

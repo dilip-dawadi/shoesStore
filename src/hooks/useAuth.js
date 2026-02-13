@@ -15,9 +15,9 @@ export const authApi = {
 export const useLogin = () => {
   return useMutation({
     mutationFn: authApi.login,
-    onSuccess: () => {
-      // Session is now managed by cookies, just reload
-      window.location.reload();
+    onSuccess: (data) => {
+      // Don't reload - let the page handle redirect with useAuth context
+      // The AuthContext will automatically refresh the user state
     },
   });
 };

@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { motion } from "framer-motion";
 import { useLogin } from "../../hooks/useAuth";
+import { useAuth } from "../../context/AuthContext";
 import { NotifySuccess, NotifyError } from "../../toastify";
 import { Button } from "../../components/ui/button";
 import { FiMail, FiLock, FiUser, FiArrowRight } from "react-icons/fi";
@@ -18,6 +19,22 @@ export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const loginMutation = useLogin();
+  const { user, isAdmin, refreshSession } = useAuth();
+  const [isCheckingAuth, setIsCheckingAuth] = React.useState(false);
+
+  // Redirect after successful login when user is updated
+  React.useEffect(() => {
+    if (isCheckingAuth && user) {
+      const storedRedirect = sessionStorage.getItem("redirectAfterLogin");
+      const redirectTo =
+        storedRedirect ||
+        location.state?.from?.pathname ||
+        (isAdmin ? "/admin" : "/dashboard");
+      sessionStorage.removeItem("redirectAfterLogin");
+      navigate(redirectTo, { replace: true });
+      setIsCheckingAuth(false);
+    }
+  }, [user, isAdmin, navigate, location, isCheckingAuth]);
 
   const {
     register,
@@ -36,22 +53,36 @@ export default function Login() {
     }
   }, []);
 
+  // If already authenticated, redirect them
+  React.useEffect(() => {
+    if (user && !isCheckingAuth) {
+      const redirectTo = isAdmin ? "/admin" : "/dashboard";
+      navigate(redirectTo, { replace: true });
+    }
+  }, [user, isAdmin, navigate]);
+
+  // Show loading while auth is being verified after login
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="relative w-16 h-16 mb-4">
+            <div className="absolute inset-0 rounded-full border-4 border-muted"></div>
+            <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-primary border-r-primary/50 animate-spin"></div>
+          </div>
+          <p className="text-muted-foreground">Redirecting...</p>
+        </div>
+      </div>
+    );
+  }
+
   const onSubmit = async (data) => {
     try {
       await loginMutation.mutateAsync(data);
       NotifySuccess("Welcome back! Login successful");
-
-      // Check for stored redirect URL (from session expiry)
-      const storedRedirect = sessionStorage.getItem("redirectAfterLogin");
-
-      // Priority: stored redirect > location state > home
-      const redirectTo =
-        storedRedirect || location.state?.from?.pathname || "/";
-
-      // Clear stored redirect
-      sessionStorage.removeItem("redirectAfterLogin");
-
-      navigate(redirectTo, { replace: true });
+      setIsCheckingAuth(true);
+      // Refresh the auth session to get the updated user data
+      refreshSession();
     } catch (error) {
       NotifyError(
         error.response?.data?.message ||
@@ -61,7 +92,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen bg-linear-to-br from-background via-muted/30 to-background flex items-center justify-center px-4 py-12">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

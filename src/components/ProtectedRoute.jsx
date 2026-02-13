@@ -187,8 +187,19 @@ export const AdminRoute = ({ children }) => {
  * Like login/register pages
  */
 export const PublicOnlyRoute = ({ children }) => {
-  const { isAuthenticated, isAdmin, loading } = useAuth();
+  const { isAuthenticated, isAdmin, loading, user } = useAuth();
 
+  // If not authenticated, show page immediately (don't wait for loading)
+  if (!isAuthenticated && !user) {
+    return children;
+  }
+
+  // If loading but no user, show page (they're not logged in)
+  if (loading && !user) {
+    return children;
+  }
+
+  // Show loading while checking if user is authenticated (for redirect)
   if (loading) {
     return <MinimalLoadingScreen message="Loading..." />;
   }
