@@ -10,11 +10,34 @@ const api = axios.create({
   },
 });
 
+const notifyApiStatus = (online) => {
+  window.dispatchEvent(
+    new CustomEvent("api:status", {
+      detail: { online },
+    }),
+  );
+};
+
 // Response interceptor to handle session expiry on protected routes
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    notifyApiStatus(true);
+    return response;
+  },
   (error) => {
     const currentPath = window.location.pathname;
+
+    if (!error.response) {
+      notifyApiStatus(false);
+      return Promise.reject(error);
+    }
+
+    if ([502, 503, 504].includes(error.response.status)) {
+      notifyApiStatus(false);
+      return Promise.reject(error);
+    }
+
+    notifyApiStatus(true);
 
     // Handle 401/440 (Unauthorized/Session Expired)
     if (error.response?.status === 401 || error.response?.status === 440) {

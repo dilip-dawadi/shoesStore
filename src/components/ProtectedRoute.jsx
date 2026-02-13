@@ -59,16 +59,16 @@ const PageLoadingSkeleton = ({ message = "Loading..." }) => {
  * Redirects to home page if user is not authenticated
  */
 export const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, apiOnline } = useAuth();
   const location = useLocation();
   const [hasNotified, setHasNotified] = React.useState(false);
 
   React.useEffect(() => {
-    if (!loading && !isAuthenticated && !hasNotified) {
+    if (apiOnline && !loading && !isAuthenticated && !hasNotified) {
       NotifyWarning("Please login to access this page");
       setHasNotified(true);
     }
-  }, [loading, isAuthenticated, hasNotified]);
+  }, [apiOnline, loading, isAuthenticated, hasNotified]);
 
   // Show loading state while checking authentication
   if (loading) {
@@ -89,12 +89,12 @@ export const ProtectedRoute = ({ children }) => {
  * Redirects to home page if not authenticated
  */
 export const AdminRoute = ({ children }) => {
-  const { isAuthenticated, isAdmin, loading, user } = useAuth();
+  const { isAuthenticated, isAdmin, loading, apiOnline, user } = useAuth();
   const location = useLocation();
   const [hasNotified, setHasNotified] = React.useState(false);
 
   React.useEffect(() => {
-    if (!loading && !hasNotified) {
+    if (apiOnline && !loading && !hasNotified) {
       if (!isAuthenticated) {
         NotifyWarning("Please login to access the admin panel");
         setHasNotified(true);
@@ -105,7 +105,7 @@ export const AdminRoute = ({ children }) => {
         setHasNotified(true);
       }
     }
-  }, [loading, isAuthenticated, isAdmin, hasNotified]);
+  }, [apiOnline, loading, isAuthenticated, isAdmin, hasNotified]);
 
   // Show loading state while checking authentication
   if (loading) {

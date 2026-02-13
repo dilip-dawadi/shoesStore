@@ -20,6 +20,9 @@ export default defineConfig({
     open: true,
     strictPort: true,
     cors: true,
+    watch: {
+      ignored: ["**/backend/**", "**/build/**"],
+    },
   },
   build: {
     outDir: "build",

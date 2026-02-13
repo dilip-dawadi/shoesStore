@@ -5,6 +5,8 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import morgan from "morgan";
 import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
+import pg from "pg";
 
 // Import routes
 import authRoutes from "./routes/auth.js";
@@ -27,12 +29,23 @@ const app = express();
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
+// PostgreSQL session store setup
+const PgSession = connectPgSimple(session);
+const pgPool = new pg.Pool({
+  connectionString: process.env.DATABASE_URL,
+});
+
 // Session middleware - MUST be before CORS
 const sessionName = "sessionId";
 app.set("sessionName", sessionName);
 
 app.use(
   session({
+    store: new PgSession({
+      pool: pgPool,
+      tableName: "user_sessions", // Table will be auto-created
+      createTableIfMissing: true,
+    }),
     name: sessionName,
     secret:
       process.env.SESSION_SECRET || "your-secret-key-change-in-production",

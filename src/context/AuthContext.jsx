@@ -6,9 +6,30 @@ const AuthContext = createContext(null);
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [apiOnline, setApiOnline] = useState(true);
 
   // Initialize auth from session
   useEffect(() => {
+    const handleApiStatus = (event) => {
+      const online = !!event.detail?.online;
+      setApiOnline(online);
+
+      if (!online) {
+        setLoading(true);
+      }
+    };
+
+    window.addEventListener("api:status", handleApiStatus);
+    return () => {
+      window.removeEventListener("api:status", handleApiStatus);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!apiOnline) {
+      return;
+    }
+
     const initAuth = async () => {
       try {
         // Check if user has active session
@@ -21,14 +42,16 @@ export const AuthProvider = ({ children }) => {
         }
       } catch (error) {
         console.error("Auth initialization error:", error);
-        setUser(null);
+        if (error.response?.status === 401 || error.response?.status === 440) {
+          setUser(null);
+        }
       } finally {
         setLoading(false);
       }
     };
 
     initAuth();
-  }, []);
+  }, [apiOnline]);
 
   const login = (userData) => {
     setUser(userData);
@@ -63,6 +86,7 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     updateUser,
+    apiOnline,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Routes, Route } from "react-router-dom";
 import { QueryProvider } from "./lib/react-query";
 import { AuthProvider } from "./context/AuthContext";
@@ -31,8 +32,36 @@ import AddProduct from "./pages/product/ManageProduct";
 import Cart from "./components/cart";
 
 const AppContent = () => {
+  const [apiOffline, setApiOffline] = useState(false);
+
+  useEffect(() => {
+    const handleApiStatus = (event) => {
+      setApiOffline(!event.detail?.online);
+    };
+
+    window.addEventListener("api:status", handleApiStatus);
+    return () => {
+      window.removeEventListener("api:status", handleApiStatus);
+    };
+  }, []);
+
   return (
     <>
+      {apiOffline ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm">
+          <div className="rounded-lg border border-primary-200 bg-white px-6 py-5 text-center shadow-sm">
+            <div className="text-lg font-semibold text-primary-900">
+              Reconnecting...
+            </div>
+            <div className="mt-1 text-sm text-primary-600">
+              Backend is restarting. We will reconnect automatically.
+            </div>
+            <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-primary-100">
+              <div className="h-full w-1/3 animate-pulse rounded-full bg-primary-500" />
+            </div>
+          </div>
+        </div>
+      ) : null}
       <div className="max-w-360 mx-auto bg-white relative">
         <Header />
         <Routes>
