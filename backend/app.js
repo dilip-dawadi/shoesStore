@@ -88,7 +88,7 @@ app.options("*", cors(corsOptions));
 // Rate limiting - more generous for development
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000, // increased from 100 to 1000
+  max: 500, // increased from 100 to 1000
   skip: (req) => req.method === "OPTIONS", // skip rate limiting for preflight
   message: "Too many requests from this IP, please try again later",
 });
@@ -98,8 +98,8 @@ app.use("/api/", limiter);
 if (process.env.NODE_ENV !== "production") {
   app.use((req, res, next) => {
     console.log("Session ID:", req.sessionID);
-    console.log("Session Data:", req.session);
-    console.log("Cookies:", req.headers.cookie);
+    // console.log("Session Data:", req.session);
+    // console.log("Cookies:", req.headers.cookie);
     next();
   });
   // Logging middleware - only in development to avoid performance issues in production
