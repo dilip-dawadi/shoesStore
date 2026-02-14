@@ -111,9 +111,6 @@ app.use("/api/", limiter);
 if (process.env.NODE_ENV !== "production") {
   app.use((req, res, next) => {
     console.log("Session ID:", req.sessionID);
-    setTimeout(() => {
-      next();
-    }, 1000);
     // console.log("Session Data:", req.session);
     // console.log("Cookies:", req.headers.cookie);
   });
