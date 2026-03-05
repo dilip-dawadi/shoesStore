@@ -67,7 +67,8 @@ aws ecs update-service \
   --cluster shoe-store \
   --service shoe-store \
   --force-new-deployment \
-  --region us-east-1
+  --region us-east-1 \
+  --no-cli-pager
 ```
 
 > The new container takes ~1-2 minutes to become healthy. The old one keeps running until it's ready.
