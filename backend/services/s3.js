@@ -10,12 +10,11 @@ import crypto from "crypto";
 dotenv.config();
 
 // Configure AWS S3
+// No explicit credentials — the SDK automatically uses the ECS task IAM role
+// (via the container metadata endpoint). For local dev, it falls back to
+// ~/.aws/credentials or AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY env vars.
 const s3Client = new S3Client({
   region: process.env.AWS_REGION || "us-east-1",
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  },
 });
 
 const BUCKET_NAME = process.env.AWS_S3_BUCKET || "shoes-store-images";

@@ -182,7 +182,7 @@ export default function AddProduct() {
                       <div className="mt-1">
                         <div className="flex">
                           <span className="inline-flex items-center px-3 text-sm rounded-l-md border border-r-0 dark:bg-[#fff] dark:text-black dark:border-[#edd5da]">
-                            Rs.
+                            $
                           </span>
                           <input
                             type="text"

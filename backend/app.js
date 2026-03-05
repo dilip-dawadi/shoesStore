@@ -9,7 +9,6 @@ import connectPgSimple from "connect-pg-simple";
 import pg from "pg";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
-import { readFileSync } from "fs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -44,12 +43,8 @@ const PgSession = connectPgSimple(session);
 const isRDS = (process.env.DATABASE_URL || "").includes(".rds.amazonaws.com");
 const pgPool = new pg.Pool({
   connectionString: process.env.DATABASE_URL,
-  ...(isRDS && {
-    ssl: {
-      rejectUnauthorized: true,
-      ca: readFileSync(join(__dirname, "certs/global-bundle.pem")).toString(),
-    },
-  }),
+  // Rely on the system CA bundle (ca-certificates in Alpine) to verify RDS cert
+  ...(isRDS && { ssl: { rejectUnauthorized: true } }),
 });
 
 // Session middleware - MUST be before CORS

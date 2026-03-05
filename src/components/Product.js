@@ -119,9 +119,7 @@ const Product = ({ Products }) => {
             .slice(0, 6)
             .join(" ")}
         </div>
-        <div className="text-foreground font-semibold">
-          Rs. {Products?.price}
-        </div>
+        <div className="text-foreground font-semibold">$ {Products?.price}</div>
       </div>
     </Card>
   );

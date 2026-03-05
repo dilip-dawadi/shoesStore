@@ -133,22 +133,33 @@ const ManageProduct = () => {
     }));
   };
 
-  const handleImageUpload = (e) => {
+  const handleImageUpload = async (e) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
 
     setIsUploadingImages(true);
+    try {
+      const formData = new FormData();
+      files.forEach((file) => formData.append("images", file));
 
-    // Simulate image upload - In production, upload to your storage service
-    const newImageUrls = files.map((file) => URL.createObjectURL(file));
+      const { data } = await axios.post("/upload/images", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
 
-    setImageUrls((prev) => [...prev, ...newImageUrls]);
-    setFormData((prev) => ({
-      ...prev,
-      images: [...prev.images, ...newImageUrls],
-    }));
+      // data is an array of { url, key }
+      const newImageUrls = data.map((item) => item.url);
 
-    setIsUploadingImages(false);
+      setImageUrls((prev) => [...prev, ...newImageUrls]);
+      setFormData((prev) => ({
+        ...prev,
+        images: [...prev.images, ...newImageUrls],
+      }));
+      NotifySuccess("Images uploaded successfully");
+    } catch (error) {
+      NotifyError(error.response?.data?.message || "Image upload failed");
+    } finally {
+      setIsUploadingImages(false);
+    }
   };
 
   const handleRemoveImage = (index) => {
@@ -270,7 +281,7 @@ const ManageProduct = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="price">
-                  Price (Rs.) <span className="text-destructive">*</span>
+                  Price ($) <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="price"

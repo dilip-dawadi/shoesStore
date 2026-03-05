@@ -214,7 +214,7 @@ const ManageOrders = () => {
                     <div className="text-sm">
                       <span className="text-muted-foreground">Total: </span>
                       <span className="font-semibold">
-                        Rs. {order.totalAmount || 0}
+                        $ {order.totalAmount || 0}
                       </span>
                       <span className="text-muted-foreground ml-4">
                         Items: {order.items?.length || 0}

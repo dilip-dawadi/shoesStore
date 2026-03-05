@@ -131,7 +131,7 @@ const ManageProducts = () => {
                       {product.brand} • {product.category}
                     </p>
                     <div className="flex items-center gap-2 mt-1">
-                      <Badge variant="outline">Rs. {product.price}</Badge>
+                      <Badge variant="outline">$ {product.price}</Badge>
                       <Badge
                         variant={
                           product.stock > 0 ? "secondary" : "destructive"

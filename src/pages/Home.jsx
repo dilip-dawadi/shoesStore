@@ -31,7 +31,7 @@ const Home = () => {
     {
       icon: <Truck className="h-8 w-8 text-primary" />,
       title: "Fast Delivery",
-      description: "Free shipping on orders above Rs. 5000",
+      description: "Free shipping on orders above $5000",
     },
     {
       icon: <ShieldCheck className="h-8 w-8 text-primary" />,
