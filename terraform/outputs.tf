@@ -22,3 +22,13 @@ output "cloudwatch_log_group" {
   description = "CloudWatch log group for container logs"
   value       = aws_cloudwatch_log_group.app.name
 }
+
+output "waf_web_acl_arn" {
+  description = "ARN of the WAFv2 Web ACL protecting the ALB"
+  value       = aws_wafv2_web_acl.app.arn
+}
+
+output "waf_log_group" {
+  description = "CloudWatch log group for WAF request logs"
+  value       = aws_cloudwatch_log_group.waf.name
+}
