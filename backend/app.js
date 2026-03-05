@@ -7,6 +7,12 @@ import morgan from "morgan";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import pg from "pg";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
+import { readFileSync } from "fs";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Import routes
 import authRoutes from "./routes/auth.js";
@@ -25,14 +31,25 @@ dotenv.config();
 
 const app = express();
 
+// Trust the ALB/proxy's X-Forwarded-For header (required for rate limiting and
+// accurate client IPs behind AWS ALB / any reverse proxy)
+app.set("trust proxy", 1);
+
 // Body parsing middleware - MUST be first
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 // PostgreSQL session store setup
 const PgSession = connectPgSimple(session);
+const isRDS = (process.env.DATABASE_URL || "").includes(".rds.amazonaws.com");
 const pgPool = new pg.Pool({
   connectionString: process.env.DATABASE_URL,
+  ...(isRDS && {
+    ssl: {
+      rejectUnauthorized: true,
+      ca: readFileSync(join(__dirname, "certs/global-bundle.pem")).toString(),
+    },
+  }),
 });
 
 // Session middleware - MUST be before CORS
@@ -62,41 +79,53 @@ app.use(
   }),
 );
 
-// Security middleware - configure to allow credentials
-app.use(
-  helmet({
-    crossOriginResourcePolicy: { policy: "cross-origin" },
-  }),
-);
+// Security middleware
+// In production, frontend is served from the same origin so default
+// helmet settings are fine. In dev (separate ports) we relax CORP.
+if (process.env.NODE_ENV !== "production") {
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: "cross-origin" },
+    }),
+  );
+} else {
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'"],
+          styleSrc: ["'self'", "https:", "'unsafe-inline'"],
+          fontSrc: ["'self'", "https:", "data:"],
+          imgSrc: ["'self'", "data:", "https:"],
+          connectSrc: ["'self'"],
+          // Do NOT include upgradeInsecureRequests — ALB only has HTTP for now.
+          upgradeInsecureRequests: null,
+        },
+      },
+    }),
+  );
+}
 
-// CORS configuration - MUST be after session
-const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    const allowedOrigins = [
+// CORS — development only (frontend on :3000, backend on :3001).
+// In production both are served from the same Express process, so no CORS needed.
+if (process.env.NODE_ENV !== "production") {
+  const corsOptions = {
+    origin: [
       "http://localhost:3000",
       "http://127.0.0.1:3000",
       process.env.FRONTEND_URL,
-    ].filter(Boolean);
-
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-  allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
-  exposedHeaders: ["Set-Cookie"],
-  preflightContinue: false,
-  optionsSuccessStatus: 204,
-};
-
-app.use(cors(corsOptions));
-
-// Handle preflight requests
-app.options("*", cors(corsOptions));
+    ].filter(Boolean),
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
+    exposedHeaders: ["Set-Cookie"],
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
+  };
+  app.use(cors(corsOptions));
+  app.options("*", cors(corsOptions));
+}
 
 // Rate limiting - more generous for development
 const limiter = rateLimit({
@@ -113,10 +142,14 @@ if (process.env.NODE_ENV !== "production") {
     console.log("Session ID:", req.sessionID);
     // console.log("Session Data:", req.session);
     // console.log("Cookies:", req.headers.cookie);
+    next();
   });
   // Logging middleware - only in development to avoid performance issues in production
   app.use(morgan("dev"));
 }
+
+// Serve React frontend static build
+app.use(express.static(join(__dirname, "public")));
 
 // Health check
 app.get("/health", (req, res) => {
@@ -141,9 +174,12 @@ app.use((err, req, res, next) => {
   });
 });
 
-// 404 handler
+// SPA catch-all — API misses return JSON 404, everything else serves index.html
 app.use((req, res) => {
-  res.status(404).json({ message: "Route not found" });
+  if (req.path.startsWith("/api/")) {
+    return res.status(404).json({ message: "Route not found" });
+  }
+  res.sendFile(join(__dirname, "public", "index.html"));
 });
 
 const PORT = process.env.PORT || 5000;

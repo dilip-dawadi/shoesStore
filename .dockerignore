@@ -1,0 +1,10 @@
+node_modules
+backend/node_modules
+backend/public
+build
+.git
+.gitignore
+.env
+.env.local
+.env.development
+*.md

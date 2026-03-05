@@ -41,3 +41,15 @@ dist-ssr
 *.local
 
 *.md
+
+# Terraform
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+terraform/terraform.tfvars
+
+# AWS RDS cert (public cert — downloaded at build time, no need to commit)
+backend/certs/
+
+public

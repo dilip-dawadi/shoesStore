@@ -21,12 +21,42 @@ export default defineConfig({
     strictPort: true,
     cors: true,
     watch: {
-      ignored: ["**/backend/**", "**/build/**"],
+      ignored: [
+        "**/backend/app.js",
+        "**/backend/routes/**",
+        "**/backend/db/**",
+        "**/backend/public/**",
+      ],
     },
   },
   build: {
-    outDir: "build",
+    outDir: "backend/public",
     sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          "vendor-react": ["react", "react-dom", "react-router-dom"],
+          "vendor-query": [
+            "@tanstack/react-query",
+            "@tanstack/react-query-devtools",
+          ],
+          "vendor-ui": [
+            "@radix-ui/react-checkbox",
+            "@radix-ui/react-dialog",
+            "@radix-ui/react-dropdown-menu",
+            "@radix-ui/react-popover",
+            "@radix-ui/react-slider",
+            "cmdk",
+            "lucide-react",
+            "react-icons",
+            "framer-motion",
+          ],
+          "vendor-stripe": ["@stripe/react-stripe-js", "@stripe/stripe-js"],
+          "vendor-forms": ["react-hook-form", "@hookform/resolvers", "zod"],
+          "vendor-utils": ["axios", "jwt-decode", "sonner"],
+        },
+      },
+    },
   },
   esbuild: {
     loader: "jsx",
