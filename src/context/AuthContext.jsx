@@ -108,10 +108,10 @@ export const AuthProvider = ({ children }) => {
     initAuth();
   }, [apiOnline]);
 
-  // Allow manual refresh of session (e.g., after login)
+  // Allow manual refresh of session (e.g., after login or email verification)
   const refreshSession = () => {
     setLoading(true);
-    fetchSession();
+    return fetchSession();
   };
 
   const login = (userData) => {

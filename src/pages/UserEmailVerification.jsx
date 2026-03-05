@@ -1,25 +1,38 @@
 // react
 import React from "react";
-import { useNavigate } from "react-router-dom";
-import { useParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useVerifyEmail } from "../hooks/useAuth";
+import { useAuth } from "../context/AuthContext";
 
 const UserVerification = () => {
-  const params = useParams();
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get("token");
+  const userId = searchParams.get("userId");
   const navigate = useNavigate();
+  const { refreshSession } = useAuth();
   const [message, setMessage] = React.useState("");
   const { mutate: verifyEmail, isPending } = useVerifyEmail();
 
   const verify = () => {
-    verifyEmail(params.token, {
-      onSuccess: () => {
-        setMessage("Email verified successfully!");
-        setTimeout(() => navigate("/"), 2000);
+    if (!token || !userId) {
+      setMessage("Invalid verification link. Please register again.");
+      return;
+    }
+    verifyEmail(
+      { token, userId: parseInt(userId) },
+      {
+        onSuccess: async () => {
+          setMessage("Email verified successfully!");
+          // Force a fresh session fetch so the auth context picks up
+          // isVerified: true before we navigate to the dashboard
+          await refreshSession();
+          setTimeout(() => navigate("/dashboard"), 1500);
+        },
+        onError: (error) => {
+          setMessage(error.response?.data?.message || "Verification failed");
+        },
       },
-      onError: (error) => {
-        setMessage(error.response?.data?.message || "Verification failed");
-      },
-    });
+    );
   };
 
   return (

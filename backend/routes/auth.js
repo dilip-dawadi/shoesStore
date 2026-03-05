@@ -65,7 +65,7 @@ router.post(
           phone: number || null,
           address: address || null,
           verificationToken,
-          isVerified: true, // Auto-verify in development
+          isVerified: false,
         })
         .returning();
 

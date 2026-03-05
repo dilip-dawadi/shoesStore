@@ -89,15 +89,36 @@ if (process.env.NODE_ENV !== "production") {
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
-          scriptSrc: ["'self'"],
+          scriptSrc: [
+            "'self'",
+            "https://js.stripe.com",
+            "https://maps.googleapis.com",
+          ],
+          scriptSrcElem: [
+            "'self'",
+            "https://js.stripe.com",
+            "https://maps.googleapis.com",
+          ],
           styleSrc: ["'self'", "https:", "'unsafe-inline'"],
           fontSrc: ["'self'", "https:", "data:"],
           imgSrc: ["'self'", "data:", "https:"],
-          connectSrc: ["'self'"],
+          connectSrc: [
+            "'self'",
+            "https://api.stripe.com",
+            "https://checkout.stripe.com",
+          ],
+          frameSrc: [
+            "'self'",
+            "https://js.stripe.com",
+            "https://hooks.stripe.com",
+            "https://checkout.stripe.com",
+          ],
           // Do NOT include upgradeInsecureRequests — ALB only has HTTP for now.
           upgradeInsecureRequests: null,
         },
       },
+      // Disable COOP — it requires HTTPS to be meaningful and causes warnings on HTTP
+      crossOriginOpenerPolicy: false,
     }),
   );
 }
