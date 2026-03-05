@@ -40,8 +40,6 @@ dist
 dist-ssr
 *.local
 
-*.md
-
 # Terraform
 terraform/.terraform/
 terraform/.terraform.lock.hcl
