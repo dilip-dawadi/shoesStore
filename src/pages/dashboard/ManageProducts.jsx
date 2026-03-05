@@ -35,7 +35,8 @@ const ManageProducts = () => {
       await axios.delete(`/products/${productId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(["admin-products"]);
+      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
       NotifySuccess("Product deleted successfully");
     },
     onError: () => {

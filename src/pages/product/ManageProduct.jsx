@@ -82,7 +82,8 @@ const ManageProduct = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(["admin-products"]);
+      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
       NotifySuccess("Product created successfully!");
       navigate("/admin/products");
     },
@@ -97,8 +98,9 @@ const ManageProduct = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(["admin-products"]);
-      queryClient.invalidateQueries(["product", id]);
+      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["product", id] });
       NotifySuccess("Product updated successfully!");
       navigate("/admin/products");
     },
@@ -185,8 +187,11 @@ const ManageProduct = () => {
     }
 
     // Prepare data for submission
+    // formData.title is the live input value (the field the user edits);
+    // formData.name is pre-populated on load and never updated by user input,
+    // so title must take priority.
     const productData = {
-      name: formData.name || formData.title,
+      name: formData.title || formData.name,
       title: formData.title || formData.name,
       description: formData.description,
       price: parseFloat(formData.price),

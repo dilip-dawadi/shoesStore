@@ -581,6 +581,19 @@ router.put("/:id", authMiddleware, adminMiddleware, async (req, res) => {
     delete updateData.id;
     delete updateData.createdAt;
     delete updateData.numReviews;
+    // Remove non-schema fields sent by the frontend
+    delete updateData.title;
+    delete updateData.quantity;
+    delete updateData.rating;
+
+    // The DB columns category and shoeFor are varchar (single string).
+    // The frontend sends arrays — join them to comma-separated strings.
+    if (Array.isArray(updateData.category)) {
+      updateData.category = updateData.category.join(",");
+    }
+    if (Array.isArray(updateData.shoeFor)) {
+      updateData.shoeFor = updateData.shoeFor.join(",");
+    }
 
     // Validate price if provided
     if (updateData.price && parseFloat(updateData.price) <= 0) {

@@ -146,20 +146,30 @@ router.get("/", authMiddleware, async (req, res) => {
 
     // Transform orders to include calculated fields
     const ordersWithDetails = userOrders.map((order) => {
-      const total = Number(order.totalAmount) || 0;
-      // Calculate breakdown (typical e-commerce split)
-      const subtotal = total / 1.08 / 1.1; // Remove tax (8%) and shipping estimate
-      const shipping = subtotal > 100 ? 0 : 10;
+      // Normalize items so price is always a top-level field
+      const items = (order.items || []).map((item) => ({
+        ...item,
+        price: Number(item.price ?? item.product?.price ?? 0),
+      }));
+
+      // Derive subtotal directly from stored items (accurate for any item count)
+      const subtotal = items.reduce(
+        (sum, item) => sum + item.price * (Number(item.quantity) || 0),
+        0,
+      );
+      const shipping = subtotal > 100 ? 0 : items.length > 0 ? 10 : 0;
       const tax = (subtotal + shipping) * 0.08;
+      const total = Number(order.totalAmount) || subtotal + shipping + tax;
 
       return {
         ...order,
+        items,
         total,
-        totalAmount: total, // Keep both for compatibility
-        subtotal: subtotal,
-        shipping: shipping,
-        tax: tax,
-        shippingInfo: order.shippingAddress, // Map to frontend field name
+        totalAmount: total,
+        subtotal,
+        shipping,
+        tax,
+        shippingInfo: order.shippingAddress,
       };
     });
 
