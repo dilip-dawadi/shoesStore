@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { motion } from "framer-motion";
+import { SearchableSelect } from "../components/customInputs/SearchableSelect";
 import { FiGrid, FiList, FiHeart } from "react-icons/fi";
 import { AiFillHeart } from "react-icons/ai";
 import { HiShoppingCart } from "react-icons/hi";
@@ -236,17 +237,19 @@ const Wishlist = () => {
               {/* Sort & View Controls */}
               <div className="flex items-center space-x-4">
                 {/* Sort Dropdown */}
-                <select
+                <SearchableSelect
+                  options={[
+                    { id: "newest", label: "Newest First" },
+                    { id: "oldest", label: "Oldest First" },
+                    { id: "price-low", label: "Price: Low to High" },
+                    { id: "price-high", label: "Price: High to Low" },
+                    { id: "name", label: "Name: A to Z" },
+                  ]}
                   value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="px-4 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
-                >
-                  <option value="newest">Newest First</option>
-                  <option value="oldest">Oldest First</option>
-                  <option value="price-low">Price: Low to High</option>
-                  <option value="price-high">Price: High to Low</option>
-                  <option value="name">Name: A to Z</option>
-                </select>
+                  onChange={(val) => setSortBy(val)}
+                  placeholder="Sort by"
+                  returnType="id"
+                />
 
                 {/* View Toggle */}
                 <div className="flex items-center space-x-2">

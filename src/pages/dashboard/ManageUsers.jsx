@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
+import { SearchableSelect } from "../../components/customInputs/SearchableSelect";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "../../lib/axios";
@@ -267,17 +268,18 @@ const ManageUsers = () => {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <select
+                      <SearchableSelect
+                        options={[
+                          { id: "user", label: "User" },
+                          { id: "admin", label: "Admin" },
+                        ]}
                         value={user.role}
-                        onChange={(e) =>
-                          handleRoleChange(user.id, e.target.value)
-                        }
-                        className="text-sm border rounded px-2 py-1"
+                        onChange={(val) => handleRoleChange(user.id, val)}
+                        placeholder="Select role"
+                        returnType="id"
                         disabled={updateRoleMutation.isPending}
-                      >
-                        <option value="user">User</option>
-                        <option value="admin">Admin</option>
-                      </select>
+                        height="h-[34px]"
+                      />
                       <Button
                         size="sm"
                         variant="destructive"

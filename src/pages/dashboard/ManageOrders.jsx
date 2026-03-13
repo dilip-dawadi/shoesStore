@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
+import { SearchableSelect } from "../../components/customInputs/SearchableSelect";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "../../lib/axios";
@@ -221,20 +222,21 @@ const ManageOrders = () => {
                       </span>
                     </div>
                     <div className="flex gap-2">
-                      <select
+                      <SearchableSelect
+                        options={[
+                          { id: "pending", label: "Pending" },
+                          { id: "processing", label: "Processing" },
+                          { id: "shipped", label: "Shipped" },
+                          { id: "delivered", label: "Delivered" },
+                          { id: "cancelled", label: "Cancelled" },
+                        ]}
                         value={order.status}
-                        onChange={(e) =>
-                          handleStatusChange(order.id, e.target.value)
-                        }
-                        className="text-sm border rounded px-2 py-1"
+                        onChange={(val) => handleStatusChange(order.id, val)}
+                        placeholder="Select status"
+                        returnType="id"
                         disabled={updateStatusMutation.isPending}
-                      >
-                        <option value="pending">Pending</option>
-                        <option value="processing">Processing</option>
-                        <option value="shipped">Shipped</option>
-                        <option value="delivered">Delivered</option>
-                        <option value="cancelled">Cancelled</option>
-                      </select>
+                        height="h-[34px]"
+                      />
                       <Button
                         size="sm"
                         variant="outline"

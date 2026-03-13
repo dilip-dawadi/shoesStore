@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { SearchableSelect } from "@/components/customInputs/SearchableSelect";
 import {
   FiFilter,
   FiX,
@@ -75,24 +76,17 @@ const AdvancedFilters = ({ filters, setFilters, isLoading }) => {
     return () => clearTimeout(timeoutId);
   }, [searchTerm]);
 
-  // Debounced price range effect
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (
-        priceRange[0] !== parseInt(filters.minPrice || 0) ||
-        priceRange[1] !== parseInt(filters.maxPrice || 500)
-      ) {
-        setFilters((prev) => ({
-          ...prev,
-          minPrice: priceRange[0],
-          maxPrice: priceRange[1],
-          page: 1,
-        }));
-      }
-    }, 500);
-
-    return () => clearTimeout(timeoutId);
-  }, [priceRange]);
+  const handlePriceCommit = useCallback(
+    (value) => {
+      setFilters((prev) => ({
+        ...prev,
+        minPrice: value[0],
+        maxPrice: value[1],
+        page: 1,
+      }));
+    },
+    [setFilters],
+  );
 
   const toggleSection = useCallback((section) => {
     setExpandedSections((prev) => ({
@@ -122,18 +116,6 @@ const AdvancedFilters = ({ filters, setFilters, isLoading }) => {
     },
     [filters, setFilters],
   );
-
-  const handlePriceChange = useCallback((index, value) => {
-    const numValue = Number(value);
-    setPriceRange((prev) => {
-      const next = [...prev];
-      next[index] = numValue;
-      // Ensure min doesn't exceed max and vice-versa
-      if (index === 0 && numValue > prev[1]) next[1] = numValue;
-      if (index === 1 && numValue < prev[0]) next[0] = numValue;
-      return next;
-    });
-  }, []);
 
   const handleSortChange = useCallback(
     (value) => {
@@ -293,17 +275,16 @@ const AdvancedFilters = ({ filters, setFilters, isLoading }) => {
 
           {/* Sort */}
           <FilterSection title="Sort By" sectionKey="sort">
-            <select
+            <SearchableSelect
+              options={sortOptions.map((o) => ({
+                id: o.value,
+                label: o.label,
+              }))}
               value={filters.sort}
-              onChange={(e) => handleSortChange(e.target.value)}
-              className="w-full px-3 py-2.5 border border-border bg-background rounded-lg focus:ring-2 focus:ring-accent focus:border-accent transition-all text-sm text-foreground cursor-pointer"
-            >
-              {sortOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+              onChange={handleSortChange}
+              placeholder="Select sort"
+              returnType="id"
+            />
           </FilterSection>
 
           {/* Price Range */}
@@ -316,6 +297,7 @@ const AdvancedFilters = ({ filters, setFilters, isLoading }) => {
                   step={1}
                   value={priceRange}
                   onValueChange={setPriceRange}
+                  onValueCommit={handlePriceCommit}
                   className="w-full"
                 />
               </div>

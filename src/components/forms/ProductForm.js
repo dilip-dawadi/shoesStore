@@ -3,6 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useCreateProduct, useUpdateProduct } from "../../hooks/useProducts";
 import { NotifySuccess, NotifyError } from "../../toastify";
+import { SearchableSelect } from "../customInputs/SearchableSelect";
 
 const productSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -28,6 +29,8 @@ export default function ProductForm({ product, onSuccess, onClose }) {
   const {
     register,
     handleSubmit,
+    watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(productSchema),
@@ -199,17 +202,18 @@ export default function ProductForm({ product, onSuccess, onClose }) {
         >
           Shoe For
         </label>
-        <select
-          {...register("shoeFor")}
-          id="shoeFor"
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-        >
-          <option value="">Select...</option>
-          <option value="men">Men</option>
-          <option value="women">Women</option>
-          <option value="kids">Kids</option>
-          <option value="unisex">Unisex</option>
-        </select>
+        <SearchableSelect
+          options={[
+            { id: "men", label: "Men" },
+            { id: "women", label: "Women" },
+            { id: "kids", label: "Kids" },
+            { id: "unisex", label: "Unisex" },
+          ]}
+          value={watch("shoeFor")}
+          onChange={(val) => setValue("shoeFor", val, { shouldValidate: true })}
+          placeholder="Select shoe for"
+          returnType="id"
+        />
         {errors.shoeFor && (
           <p className="mt-1 text-sm text-red-600">{errors.shoeFor.message}</p>
         )}

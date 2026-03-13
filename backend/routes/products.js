@@ -74,19 +74,47 @@ const buildWhereConditions = (filters) => {
     minRating,
   } = filters;
 
-  // Category filter (case-insensitive)
+  // Category filter (case-insensitive, supports comma-separated multi-select)
   if (category) {
-    conditions.push(ilike(products.category, category));
+    const categoryValues = category
+      .split(",")
+      .map((v) => v.trim())
+      .filter(Boolean);
+    if (categoryValues.length === 1) {
+      conditions.push(ilike(products.category, categoryValues[0]));
+    } else if (categoryValues.length > 1) {
+      conditions.push(
+        or(...categoryValues.map((v) => ilike(products.category, v))),
+      );
+    }
   }
 
-  // Brand filter (case-insensitive)
+  // Brand filter (case-insensitive, supports comma-separated multi-select)
   if (brand) {
-    conditions.push(ilike(products.brand, brand));
+    const brandValues = brand
+      .split(",")
+      .map((v) => v.trim())
+      .filter(Boolean);
+    if (brandValues.length === 1) {
+      conditions.push(ilike(products.brand, brandValues[0]));
+    } else if (brandValues.length > 1) {
+      conditions.push(or(...brandValues.map((v) => ilike(products.brand, v))));
+    }
   }
 
-  // Shoe type filter
+  // Shoe type filter (case-insensitive, supports comma-separated multi-select)
   if (shoeFor) {
-    conditions.push(ilike(products.shoeFor, shoeFor));
+    const shoeForValues = shoeFor
+      .split(",")
+      .map((v) => v.trim())
+      .filter(Boolean);
+    if (shoeForValues.length === 1) {
+      conditions.push(ilike(products.shoeFor, shoeForValues[0]));
+    } else if (shoeForValues.length > 1) {
+      conditions.push(
+        or(...shoeForValues.map((v) => ilike(products.shoeFor, v))),
+      );
+    }
   }
 
   // Price range filters

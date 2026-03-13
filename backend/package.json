@@ -6,9 +6,9 @@
   "type": "module",
   "scripts": {
     "start": "node app.js",
-    "dev": "nodemon app.js",
+    "dev": "NODE_EXTRA_CA_CERTS=./certs/global-bundle.pem nodemon app.js",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "NODE_TLS_REJECT_UNAUTHORIZED=0 drizzle-kit push --force",
+    "db:migrate": "NODE_EXTRA_CA_CERTS=./certs/global-bundle.pem drizzle-kit push --force",
     "db:studio": "drizzle-kit studio"
   },
   "keywords": [],
