@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { SearchableSelect } from "@/components/customInputs/SearchableSelect";
 import {
   FiFilter,
@@ -27,16 +26,7 @@ const AdvancedFilters = ({ filters, setFilters, isLoading }) => {
   });
 
   // Available filter options
-  const categories = [
-    "Running",
-    "Basketball",
-    "Casual",
-    "Training",
-    "Walking",
-    "Hiking",
-    "Soccer",
-    "Tennis",
-  ];
+  const categories = ["Men", "Women", "Kids", "Unisex"];
 
   const brands = [
     "Nike",
@@ -49,7 +39,20 @@ const AdvancedFilters = ({ filters, setFilters, isLoading }) => {
     "Under Armour",
   ];
 
-  const genderOptions = ["Men", "Women", "Unisex", "Kids"];
+  const shoeTypeOptions = [
+    "Running",
+    "Casual",
+    "Sports",
+    "Formal",
+    "Lounging",
+    "Everyday",
+    "Basketball",
+    "Training",
+    "Walking",
+    "Hiking",
+    "Soccer",
+    "Tennis",
+  ];
 
   const sortOptions = [
     { label: "Newest First", value: "-createdAt" },
@@ -347,9 +350,9 @@ const AdvancedFilters = ({ filters, setFilters, isLoading }) => {
             </div>
           </FilterSection>
 
-          {/* Gender/Type */}
+          {/* Shoe Type */}
           <FilterSection title="For" sectionKey="gender">
-            {genderOptions.map((option) => (
+            {shoeTypeOptions.map((option) => (
               <CheckboxItem
                 key={option}
                 label={option}

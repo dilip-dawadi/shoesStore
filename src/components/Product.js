@@ -1,5 +1,3 @@
-import React from "react";
-// import icons
 import { FaHeart, FaRegHeart } from "react-icons/fa";
 import { BsEyeFill } from "react-icons/bs";
 import { Link } from "react-router-dom";

@@ -81,10 +81,10 @@ const buildWhereConditions = (filters) => {
       .map((v) => v.trim())
       .filter(Boolean);
     if (categoryValues.length === 1) {
-      conditions.push(ilike(products.category, categoryValues[0]));
+      conditions.push(ilike(products.category, `%${categoryValues[0]}%`));
     } else if (categoryValues.length > 1) {
       conditions.push(
-        or(...categoryValues.map((v) => ilike(products.category, v))),
+        or(...categoryValues.map((v) => ilike(products.category, `%${v}%`))),
       );
     }
   }
@@ -96,9 +96,11 @@ const buildWhereConditions = (filters) => {
       .map((v) => v.trim())
       .filter(Boolean);
     if (brandValues.length === 1) {
-      conditions.push(ilike(products.brand, brandValues[0]));
+      conditions.push(ilike(products.brand, `%${brandValues[0]}%`));
     } else if (brandValues.length > 1) {
-      conditions.push(or(...brandValues.map((v) => ilike(products.brand, v))));
+      conditions.push(
+        or(...brandValues.map((v) => ilike(products.brand, `%${v}%`))),
+      );
     }
   }
 
@@ -109,10 +111,10 @@ const buildWhereConditions = (filters) => {
       .map((v) => v.trim())
       .filter(Boolean);
     if (shoeForValues.length === 1) {
-      conditions.push(ilike(products.shoeFor, shoeForValues[0]));
+      conditions.push(ilike(products.shoeFor, `%${shoeForValues[0]}%`));
     } else if (shoeForValues.length > 1) {
       conditions.push(
-        or(...shoeForValues.map((v) => ilike(products.shoeFor, v))),
+        or(...shoeForValues.map((v) => ilike(products.shoeFor, `%${v}%`))),
       );
     }
   }

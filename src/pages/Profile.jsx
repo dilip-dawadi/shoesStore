@@ -12,8 +12,8 @@ import {
   FiX,
 } from "react-icons/fi";
 import { NotifySuccess, NotifyError } from "../toastify";
-import { SimpleSelect } from "../components/customInputs/SimpleSelect";
 import { countries } from "../constants/countries";
+import { SearchableSelect } from "@/components/customInputs/SearchableSelect";
 
 const Profile = () => {
   const queryClient = useQueryClient();
@@ -290,7 +290,7 @@ const Profile = () => {
                       <label className="block text-sm font-semibold text-foreground mb-2">
                         Country
                       </label>
-                      <SimpleSelect
+                      <SearchableSelect
                         options={countries}
                         value={formData.country}
                         onChange={(value) =>
@@ -300,6 +300,7 @@ const Profile = () => {
                         returnType="id"
                         height="h-[50px]"
                         disabled={!isEditing}
+                        searchable={true}
                       />
                     </div>
                   </div>

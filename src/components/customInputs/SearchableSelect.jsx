@@ -10,6 +10,7 @@ export function SearchableSelect({
   placeholder = "Select option",
   height = "h-[40px]",
   returnType = "id",
+  searchable = false,
   disabled = false,
 }) {
   const [open, setOpen] = React.useState(false);
@@ -40,7 +41,7 @@ export function SearchableSelect({
           type="button"
           disabled={disabled}
           className={cn(
-            "w-full flex items-center justify-between rounded-lg border border-border bg-background px-3 text-sm font-medium text-foreground hover:bg-accent/5 focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors",
+            "w-full flex items-center cursor-pointer  justify-between rounded-lg border border-border bg-background px-3 text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-accent disabled:cursor-not-allowed disabled:bg-secondary/20 transition-colors",
             height,
           )}
         >
@@ -60,11 +61,16 @@ export function SearchableSelect({
           sideOffset={4}
           align="start"
           avoidCollisions={false}
-          className="z-[200] rounded-lg border border-border bg-card shadow-lg min-w-[var(--radix-popover-trigger-width)] w-[var(--radix-popover-trigger-width)] p-0 overflow-hidden"
+          className="z-200 rounded-lg border border-border bg-card shadow-lg min-w-[var(--radix-popover-trigger-width)] w-[var(--radix-popover-trigger-width)] p-0 overflow-hidden"
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
           {/* Search input */}
-          <div className="flex items-center border-b border-border px-3 py-2 gap-2">
+          <div
+            className={cn(
+              "flex items-center border-b border-border px-3 py-2 gap-2",
+              !searchable && "hidden",
+            )}
+          >
             <Search className="h-4 w-4 text-muted-foreground shrink-0" />
             <input
               autoFocus
@@ -72,7 +78,7 @@ export function SearchableSelect({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search..."
-              className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground text-foreground"
+              className={`flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground text-foreground`}
             />
           </div>
 

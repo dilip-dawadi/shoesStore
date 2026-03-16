@@ -168,18 +168,19 @@
     height: 1rem;
     border: 1px solid var(--color-secondary-300);
     border-radius: 0.25rem;
-    color: var(--color-primary-900);
+    color: var(--color-accent);
+    accent-color: var(--color-accent);
     cursor: pointer;
   }
   [type="checkbox"]:focus,
   [type="radio"]:focus {
-    box-shadow: 0 0 0 2px var(--color-primary);
+    box-shadow: 0 0 0 2px var(--color-accent);
     outline: none;
   }
   [type="checkbox"]:checked,
   [type="radio"]:checked {
-    background-color: var(--color-primary-900);
-    border-color: var(--color-primary-900);
+    background-color: var(--color-accent);
+    border-color: var(--color-accent);
   }
 
   [type="file"] {

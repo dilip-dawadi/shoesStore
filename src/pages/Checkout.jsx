@@ -11,12 +11,19 @@ import { useNavigate } from "react-router-dom";
 import { useCart } from "../hooks/useCart";
 import {
   FiCreditCard,
+  FiLock,
   FiMapPin,
   FiUser,
   FiMail,
   FiPhone,
   FiShoppingBag,
 } from "react-icons/fi";
+import {
+  SiStripe,
+  SiVisa,
+  SiMastercard,
+  SiAmericanexpress,
+} from "react-icons/si";
 import { NotifySuccess, NotifyError, LoadingBtn } from "../toastify";
 import api from "../lib/axios";
 import { SearchableSelect } from "../components/customInputs/SearchableSelect";
@@ -357,6 +364,7 @@ const CheckoutForm = () => {
                         setShippingInfo({ ...shippingInfo, country: value })
                       }
                       placeholder="Select Country"
+                      searchable={true}
                       returnType="id"
                       height="h-[50px]"
                     />
@@ -378,10 +386,29 @@ const CheckoutForm = () => {
                   </h2>
                 </div>
 
+                <div className="mb-4 rounded-lg border border-primary/20 bg-primary/5 p-3">
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <div className="flex items-center gap-2 text-foreground font-semibold">
+                      <SiStripe size={22} className="text-[#635BFF]" />
+                      <span>Powered by Stripe</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <FiLock size={14} />
+                      <span>Encrypted and PCI-compliant checkout</span>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex items-center gap-3 text-muted-foreground">
+                    <SiVisa size={24} />
+                    <SiMastercard size={24} />
+                    <SiAmericanexpress size={24} />
+                  </div>
+                </div>
+
                 <div className="border border-border rounded-lg p-4 bg-secondary/10">
                   <CardElement
                     options={{
                       hidePostalCode: true,
+                      iconStyle: "solid",
                       style: {
                         base: {
                           fontSize: "16px",
@@ -399,7 +426,8 @@ const CheckoutForm = () => {
                 </div>
 
                 <p className="text-xs text-muted-foreground mt-3">
-                  Your payment information is securely processed by Stripe
+                  Your card details are securely processed by Stripe. We never
+                  store your full card number.
                 </p>
               </motion.div>
 
