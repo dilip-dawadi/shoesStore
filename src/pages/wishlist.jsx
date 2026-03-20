@@ -14,9 +14,10 @@ const Wishlist = () => {
   const [viewMode, setViewMode] = useState("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("newest");
+  const [addingToCartProductId, setAddingToCartProductId] = useState(null);
 
   const { data, isLoading, error } = useWishlist();
-  const { mutate: addToCart, isPending: isAddingToCart } = useAddToCart();
+  const { mutate: addToCart } = useAddToCart();
   const { mutate: removeFromWishlist } = useRemoveFromWishlist();
 
   const wishlistItems = data?.items || [];
@@ -70,17 +71,26 @@ const Wishlist = () => {
   const handleAddToCart = (e, item) => {
     e.stopPropagation();
     const product = item.product;
+    setAddingToCartProductId(product.id);
+
     addToCart(
       {
         productId: product.id,
         quantity: 1,
       },
       {
-        onSuccess: () => {
-          NotifySuccess(`${product.name} added to cart!`);
+        onSuccess: (response) => {
+          NotifySuccess(
+            response.data?.message || `${product.name} added to cart.`,
+          );
         },
         onError: (error) => {
-          NotifyError(error.message || "Failed to add to cart");
+          NotifyError(error.response?.data?.message || "Failed to add to cart");
+        },
+        onSettled: () => {
+          setAddingToCartProductId((current) =>
+            current === product.id ? null : current,
+          );
         },
       },
     );
@@ -95,13 +105,14 @@ const Wishlist = () => {
     });
   };
 
-  const ProductCard = ({ item, index }) => {
+  const renderProductCard = (item, index) => {
     const product = item.product;
 
     if (!product) return null;
 
     return (
       <div
+        key={item.id}
         onClick={() => navigate(`/product/${product.id}`)}
         className={`bg-card border border-border rounded-xl shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden group ${
           viewMode === "list" ? "flex" : ""
@@ -182,7 +193,9 @@ const Wishlist = () => {
             </div>
             <button
               onClick={(e) => handleAddToCart(e, item)}
-              disabled={product.stock === 0 || isAddingToCart}
+              disabled={
+                product.stock === 0 || addingToCartProductId === product.id
+              }
               className="bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 disabled:bg-muted disabled:cursor-not-allowed transition-colors flex items-center space-x-2 shadow-md hover:shadow-lg"
             >
               <HiShoppingCart size={18} />
@@ -348,9 +361,9 @@ const Wishlist = () => {
                 : "space-y-6"
             }
           >
-            {filteredAndSortedItems.map((item, index) => (
-              <ProductCard key={item.id} item={item} index={index} />
-            ))}
+            {filteredAndSortedItems.map((item, index) =>
+              renderProductCard(item, index),
+            )}
           </div>
         )}
 

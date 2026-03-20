@@ -5,18 +5,30 @@ import AdvancedFilters from "../../components/filterProduct/AdvancedFilters";
 import { FiGrid, FiList, FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { AiOutlineHeart, AiFillHeart } from "react-icons/ai";
 import { HiShoppingCart } from "react-icons/hi";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useAddToCart } from "../../hooks/useCart";
 import {
   useWishlist,
   useAddToWishlist,
   useRemoveFromWishlist,
 } from "../../hooks/useWishlist";
+import { useAuth } from "../../context/AuthContext";
+import ConfirmDialog from "../../components/customDialog/ConfirmDialog";
 import { NotifySuccess, NotifyError } from "../../toastify";
 
 function Products() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { isAuthenticated } = useAuth();
   const [searchParams] = useSearchParams();
+  const [authDialog, setAuthDialog] = useState({
+    open: false,
+    title: "Login required",
+    description: "You are currently not logged in.",
+  });
+  const [addingToCartProductId, setAddingToCartProductId] = useState(null);
+  const [wishlistPendingProductId, setWishlistPendingProductId] =
+    useState(null);
   const [viewMode, setViewMode] = useState("grid");
   const [filters, setFilters] = useState({
     page: 1,
@@ -56,7 +68,7 @@ function Products() {
   }, [searchParams]);
 
   const { data, isLoading, error } = useProducts(filters);
-  const { mutate: addToCart, isPending: isAddingToCart } = useAddToCart();
+  const { mutate: addToCart } = useAddToCart();
   const { data: wishlistData } = useWishlist();
   const { mutate: addToWishlist } = useAddToWishlist();
   const { mutate: removeFromWishlist } = useRemoveFromWishlist();
@@ -69,8 +81,32 @@ function Products() {
     return wishlistItems.some((item) => item.productId === productId);
   };
 
+  const openLoginDialog = (title, description) => {
+    setAuthDialog({ open: true, title, description });
+  };
+
+  const handleConfirmLogin = async () => {
+    sessionStorage.setItem(
+      "redirectAfterLogin",
+      `${location.pathname}${location.search}`,
+    );
+    setAuthDialog((prev) => ({ ...prev, open: false }));
+    navigate("/login");
+  };
+
   const handleAddToCart = (e, product) => {
     e.stopPropagation();
+
+    if (!isAuthenticated) {
+      openLoginDialog(
+        "Login required to add to cart",
+        "You are currently not logged in. Please login to add products to your cart.",
+      );
+      return;
+    }
+
+    setAddingToCartProductId(product.id);
+
     addToCart(
       {
         productId: product.id,
@@ -78,11 +114,25 @@ function Products() {
         price: product.price,
       },
       {
-        onSuccess: () => {
-          NotifySuccess(`${product.name} added to cart!`);
+        onSuccess: (response) => {
+          NotifySuccess(
+            response.data?.message || `${product.name} added to cart.`,
+          );
         },
         onError: (error) => {
-          NotifyError(error.message || "Failed to add to cart");
+          if ([401, 440].includes(error?.response?.status)) {
+            openLoginDialog(
+              "Session required",
+              "Your session has expired or you are not logged in. Please login and try again.",
+            );
+            return;
+          }
+          NotifyError(error.response?.data?.message || "Failed to add to cart");
+        },
+        onSettled: () => {
+          setAddingToCartProductId((current) =>
+            current === product.id ? null : current,
+          );
         },
       },
     );
@@ -90,20 +140,51 @@ function Products() {
 
   const handleWishlistToggle = (e, product) => {
     e.stopPropagation();
+
+    if (!isAuthenticated) {
+      openLoginDialog(
+        "Login required to save wishlist",
+        "You are currently not logged in. Please login to save products in your wishlist.",
+      );
+      return;
+    }
+
     if (isInWishlist(product.id)) {
       const wishlistItem = wishlistItems.find(
         (item) => item.productId === product.id,
       );
+      setWishlistPendingProductId(product.id);
       removeFromWishlist(wishlistItem.id, {
         onSuccess: () => NotifySuccess("Removed from wishlist"),
+        onSettled: () => {
+          setWishlistPendingProductId((current) =>
+            current === product.id ? null : current,
+          );
+        },
       });
     } else {
+      setWishlistPendingProductId(product.id);
       addToWishlist(
         { productId: product.id },
         {
           onSuccess: () => NotifySuccess("Added to wishlist"),
-          onError: (error) =>
-            NotifyError(error.message || "Failed to add to wishlist"),
+          onError: (error) => {
+            if ([401, 440].includes(error?.response?.status)) {
+              openLoginDialog(
+                "Session required",
+                "Your session has expired or you are not logged in. Please login and try again.",
+              );
+              return;
+            }
+            NotifyError(
+              error.response?.data?.message || "Failed to add to wishlist",
+            );
+          },
+          onSettled: () => {
+            setWishlistPendingProductId((current) =>
+              current === product.id ? null : current,
+            );
+          },
         },
       );
     }
@@ -114,8 +195,9 @@ function Products() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const ProductCard = ({ product, index }) => (
+  const renderProductCard = (product, index) => (
     <div
+      key={product.id}
       onClick={() => navigate(`/product/${product.id}`)}
       className={`bg-card border border-border rounded-xl shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden group ${
         viewMode === "list" ? "flex" : ""
@@ -148,6 +230,7 @@ function Products() {
         )}
         <button
           onClick={(e) => handleWishlistToggle(e, product)}
+          disabled={wishlistPendingProductId === product.id}
           className="absolute bottom-2 right-2 bg-background border border-border p-2 rounded-full shadow-lg hover:scale-110 transition-all hover:shadow-xl"
         >
           {isInWishlist(product.id) ? (
@@ -197,8 +280,10 @@ function Products() {
           </div>
           <button
             onClick={(e) => handleAddToCart(e, product)}
-            disabled={product.stock === 0 || isAddingToCart}
-            className="bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 disabled:bg-muted disabled:cursor-not-allowed transition-colors flex items-center space-x-2 shadow-md hover:shadow-lg"
+            disabled={
+              product.stock === 0 || addingToCartProductId === product.id
+            }
+            className="bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 disabled:bg-primary/50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2 shadow-md hover:shadow-lg"
           >
             <HiShoppingCart size={18} />
             <span className="font-semibold">Add</span>
@@ -209,211 +294,222 @@ function Products() {
   );
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
-          <h1 className="text-4xl font-bold text-foreground mb-2">
-            Discover Your Perfect Shoes
-          </h1>
-          <p className="text-muted-foreground">
-            Browse our collection of premium footwear
-          </p>
-        </motion.div>
+    <>
+      <div className="min-h-screen bg-background">
+        <div className="max-w-7xl mx-auto px-4 py-8">
+          {/* Header */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-8"
+          >
+            <h1 className="text-4xl font-bold text-foreground mb-2">
+              Discover Your Perfect Shoes
+            </h1>
+            <p className="text-muted-foreground">
+              Browse our collection of premium footwear
+            </p>
+          </motion.div>
 
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* Filters Sidebar */}
-          <div className="lg:w-80 shrink-0">
-            <AdvancedFilters
-              filters={filters}
-              setFilters={setFilters}
-              isLoading={isLoading}
-            />
-          </div>
+          <div className="flex flex-col lg:flex-row gap-8">
+            {/* Filters Sidebar */}
+            <div className="lg:w-80 shrink-0">
+              <AdvancedFilters
+                filters={filters}
+                setFilters={setFilters}
+                isLoading={isLoading}
+              />
+            </div>
 
-          {/* Products Grid */}
-          <div className="flex-1">
-            {/* Toolbar */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.2 }}
-              className="bg-card border border-border rounded-lg shadow-md p-4 mb-6 flex items-center justify-between"
-            >
-              <div className="text-sm text-muted-foreground">
-                {isLoading ? (
-                  <span>Loading...</span>
-                ) : (
-                  <span>
-                    Showing{" "}
-                    <span className="font-semibold">{products.length}</span> of{" "}
-                    <span className="font-semibold">
-                      {pagination.totalItems || 0}
-                    </span>{" "}
-                    products
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => setViewMode("grid")}
-                  className={`p-2 rounded-lg transition-all ${
-                    viewMode === "grid"
-                      ? "bg-accent text-accent-foreground shadow-md"
-                      : "bg-secondary/10 text-muted-foreground hover:bg-secondary/20 hover:text-foreground"
-                  }`}
-                >
-                  <FiGrid size={20} />
-                </button>
-                <button
-                  onClick={() => setViewMode("list")}
-                  className={`p-2 rounded-lg transition-all ${
-                    viewMode === "list"
-                      ? "bg-accent text-accent-foreground shadow-md"
-                      : "bg-secondary/10 text-muted-foreground hover:bg-secondary/20 hover:text-foreground"
-                  }`}
-                >
-                  <FiList size={20} />
-                </button>
-              </div>
-            </motion.div>
-
-            {/* Loading State */}
-            {isLoading && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {[...Array(6)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="bg-card border border-border rounded-xl shadow-md overflow-hidden animate-pulse"
-                  >
-                    <div className="h-64 bg-secondary/20"></div>
-                    <div className="p-4 space-y-3">
-                      <div className="h-4 bg-secondary/20 rounded w-3/4"></div>
-                      <div className="h-4 bg-secondary/20 rounded w-1/2"></div>
-                      <div className="h-4 bg-secondary/20 rounded w-1/4"></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Error State */}
-            {error && (
-              <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-6 text-center">
-                <p className="text-destructive font-semibold">
-                  Error loading products
-                </p>
-                <p className="text-destructive/80 text-sm mt-2">
-                  {error.message}
-                </p>
-              </div>
-            )}
-
-            {/* Products Grid/List */}
-            {!isLoading && !error && (
-              <>
-                {products.length === 0 ? (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="bg-card rounded-lg shadow-md p-12 text-center"
-                  >
-                    <p className="text-muted-foreground text-lg">
-                      No products found
-                    </p>
-                    <p className="text-muted-foreground text-sm mt-2">
-                      Try adjusting your filters
-                    </p>
-                  </motion.div>
-                ) : (
-                  <div
-                    className={
+            {/* Products Grid */}
+            <div className="flex-1">
+              {/* Toolbar */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                className="bg-card border border-border rounded-lg shadow-md p-4 mb-6 flex items-center justify-between"
+              >
+                <div className="text-sm text-muted-foreground">
+                  {isLoading ? (
+                    <span>Loading...</span>
+                  ) : (
+                    <span>
+                      Showing{" "}
+                      <span className="font-semibold">{products.length}</span>{" "}
+                      of{" "}
+                      <span className="font-semibold">
+                        {pagination.totalItems || 0}
+                      </span>{" "}
+                      products
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => setViewMode("grid")}
+                    className={`p-2 rounded-lg transition-all ${
                       viewMode === "grid"
-                        ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-                        : "space-y-6"
-                    }
+                        ? "bg-accent text-accent-foreground shadow-md"
+                        : "bg-secondary/10 text-muted-foreground hover:bg-secondary/20 hover:text-foreground"
+                    }`}
                   >
-                    {products.map((product, index) => (
-                      <ProductCard
-                        key={product.id}
-                        product={product}
-                        index={index}
-                      />
-                    ))}
-                  </div>
-                )}
+                    <FiGrid size={20} />
+                  </button>
+                  <button
+                    onClick={() => setViewMode("list")}
+                    className={`p-2 rounded-lg transition-all ${
+                      viewMode === "list"
+                        ? "bg-accent text-accent-foreground shadow-md"
+                        : "bg-secondary/10 text-muted-foreground hover:bg-secondary/20 hover:text-foreground"
+                    }`}
+                  >
+                    <FiList size={20} />
+                  </button>
+                </div>
+              </motion.div>
 
-                {/* Pagination */}
-                {pagination.totalPages > 1 && (
-                  <div className="mt-8 flex items-center justify-center space-x-2">
-                    <button
-                      onClick={() =>
-                        handlePageChange(pagination.currentPage - 1)
-                      }
-                      disabled={!pagination.hasPrevPage}
-                      className="p-2 rounded-lg bg-card border border-border shadow-md hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              {/* Loading State */}
+              {isLoading && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {[...Array(6)].map((_, i) => (
+                    <div
+                      key={i}
+                      className="bg-card border border-border rounded-xl shadow-md overflow-hidden animate-pulse"
                     >
-                      <FiChevronLeft size={20} />
-                    </button>
-
-                    <div className="flex items-center space-x-2">
-                      {[...Array(pagination.totalPages)].map((_, index) => {
-                        const pageNum = index + 1;
-                        // Show first, last, current, and adjacent pages
-                        if (
-                          pageNum === 1 ||
-                          pageNum === pagination.totalPages ||
-                          (pageNum >= pagination.currentPage - 1 &&
-                            pageNum <= pagination.currentPage + 1)
-                        ) {
-                          return (
-                            <button
-                              key={pageNum}
-                              onClick={() => handlePageChange(pageNum)}
-                              className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-                                pageNum === pagination.currentPage
-                                  ? "bg-accent text-accent-foreground shadow-md scale-105"
-                                  : "bg-card border border-border text-foreground hover:bg-accent/10 hover:border-accent shadow"
-                              }`}
-                            >
-                              {pageNum}
-                            </button>
-                          );
-                        } else if (
-                          pageNum === pagination.currentPage - 2 ||
-                          pageNum === pagination.currentPage + 2
-                        ) {
-                          return (
-                            <span key={pageNum} className="text-gray-400">
-                              ...
-                            </span>
-                          );
-                        }
-                        return null;
-                      })}
+                      <div className="h-64 bg-secondary/20"></div>
+                      <div className="p-4 space-y-3">
+                        <div className="h-4 bg-secondary/20 rounded w-3/4"></div>
+                        <div className="h-4 bg-secondary/20 rounded w-1/2"></div>
+                        <div className="h-4 bg-secondary/20 rounded w-1/4"></div>
+                      </div>
                     </div>
+                  ))}
+                </div>
+              )}
 
-                    <button
-                      onClick={() =>
-                        handlePageChange(pagination.currentPage + 1)
-                      }
-                      disabled={!pagination.hasNextPage}
-                      className="p-2 rounded-lg bg-card border border-border shadow-md hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              {/* Error State */}
+              {error && (
+                <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-6 text-center">
+                  <p className="text-destructive font-semibold">
+                    Error loading products
+                  </p>
+                  <p className="text-destructive/80 text-sm mt-2">
+                    {error.message}
+                  </p>
+                </div>
+              )}
+
+              {/* Products Grid/List */}
+              {!isLoading && !error && (
+                <>
+                  {products.length === 0 ? (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="bg-card rounded-lg shadow-md p-12 text-center"
                     >
-                      <FiChevronRight size={20} />
-                    </button>
-                  </div>
-                )}
-              </>
-            )}
+                      <p className="text-muted-foreground text-lg">
+                        No products found
+                      </p>
+                      <p className="text-muted-foreground text-sm mt-2">
+                        Try adjusting your filters
+                      </p>
+                    </motion.div>
+                  ) : (
+                    <div
+                      className={
+                        viewMode === "grid"
+                          ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                          : "space-y-6"
+                      }
+                    >
+                      {products.map((product, index) =>
+                        renderProductCard(product, index),
+                      )}
+                    </div>
+                  )}
+
+                  {/* Pagination */}
+                  {pagination.totalPages > 1 && (
+                    <div className="mt-8 flex items-center justify-center space-x-2">
+                      <button
+                        onClick={() =>
+                          handlePageChange(pagination.currentPage - 1)
+                        }
+                        disabled={!pagination.hasPrevPage}
+                        className="p-2 rounded-lg bg-card border border-border shadow-md hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                      >
+                        <FiChevronLeft size={20} />
+                      </button>
+
+                      <div className="flex items-center space-x-2">
+                        {[...Array(pagination.totalPages)].map((_, index) => {
+                          const pageNum = index + 1;
+                          // Show first, last, current, and adjacent pages
+                          if (
+                            pageNum === 1 ||
+                            pageNum === pagination.totalPages ||
+                            (pageNum >= pagination.currentPage - 1 &&
+                              pageNum <= pagination.currentPage + 1)
+                          ) {
+                            return (
+                              <button
+                                key={pageNum}
+                                onClick={() => handlePageChange(pageNum)}
+                                className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                                  pageNum === pagination.currentPage
+                                    ? "bg-accent text-accent-foreground shadow-md scale-105"
+                                    : "bg-card border border-border text-foreground hover:bg-accent/10 hover:border-accent shadow"
+                                }`}
+                              >
+                                {pageNum}
+                              </button>
+                            );
+                          } else if (
+                            pageNum === pagination.currentPage - 2 ||
+                            pageNum === pagination.currentPage + 2
+                          ) {
+                            return (
+                              <span key={pageNum} className="text-gray-400">
+                                ...
+                              </span>
+                            );
+                          }
+                          return null;
+                        })}
+                      </div>
+
+                      <button
+                        onClick={() =>
+                          handlePageChange(pagination.currentPage + 1)
+                        }
+                        disabled={!pagination.hasNextPage}
+                        className="p-2 rounded-lg bg-card border border-border shadow-md hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                      >
+                        <FiChevronRight size={20} />
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+
+      <ConfirmDialog
+        open={authDialog.open}
+        setOpen={(open) => setAuthDialog((prev) => ({ ...prev, open }))}
+        title={authDialog.title}
+        description={authDialog.description}
+        confirmText="Login"
+        cancelText="Cancel"
+        cancelVariant="outline"
+        confirmVariant="default"
+        onConfirm={handleConfirmLogin}
+      />
+    </>
   );
 }
 

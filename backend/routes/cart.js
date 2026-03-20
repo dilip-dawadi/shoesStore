@@ -35,10 +35,15 @@ router.get("/", async (req, res) => {
 router.post("/", async (req, res) => {
   try {
     const { productId, quantity = 1, size, color } = req.body;
+    const requestedQuantity = Number(quantity);
 
     // Validate productId
     if (!productId) {
       return res.status(400).json({ message: "Product ID is required" });
+    }
+
+    if (!Number.isInteger(requestedQuantity) || requestedQuantity <= 0) {
+      return res.status(400).json({ message: "Quantity must be at least 1" });
     }
 
     // Check if product exists
@@ -49,6 +54,11 @@ router.post("/", async (req, res) => {
 
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
+    }
+
+    const availableStock = Number(product.stock || 0);
+    if (availableStock <= 0) {
+      return res.status(400).json({ message: "This product is out of stock" });
     }
 
     // Build where conditions, only including defined values
@@ -72,22 +82,38 @@ router.post("/", async (req, res) => {
       .where(and(...whereConditions));
 
     if (existingItem) {
+      const nextQuantity = existingItem.quantity + requestedQuantity;
+      if (nextQuantity > availableStock) {
+        return res.status(400).json({
+          message: `Only ${availableStock} item(s) available in stock`,
+        });
+      }
+
       // Update quantity
       const [updated] = await db
         .update(carts)
-        .set({ quantity: existingItem.quantity + quantity })
+        .set({ quantity: nextQuantity })
         .where(eq(carts.id, existingItem.id))
         .returning();
 
-      return res.json(updated);
+      return res.json({
+        ...updated,
+        message: "Item quantity increased in cart.",
+      });
     }
 
     // Build insert values, only including defined fields
     const insertValues = {
       userId: req.user.id,
       productId,
-      quantity,
+      quantity: requestedQuantity,
     };
+
+    if (requestedQuantity > availableStock) {
+      return res.status(400).json({
+        message: `Only ${availableStock} item(s) available in stock`,
+      });
+    }
 
     if (size !== undefined && size !== null) {
       insertValues.size = size;
@@ -100,7 +126,10 @@ router.post("/", async (req, res) => {
     // Add new item
     const [cartItem] = await db.insert(carts).values(insertValues).returning();
 
-    res.status(201).json(cartItem);
+    res.status(201).json({
+      ...cartItem,
+      message: "Item added to cart.",
+    });
   } catch (error) {
     console.error("Add to cart error:", error);
     res.status(500).json({ message: "Server error" });
@@ -111,18 +140,54 @@ router.post("/", async (req, res) => {
 router.put("/:id", async (req, res) => {
   try {
     const { quantity } = req.body;
+    const nextQuantity = Number(quantity);
 
-    const [cartItem] = await db
-      .update(carts)
-      .set({ quantity, updatedAt: new Date() })
-      .where(and(eq(carts.id, req.params.id), eq(carts.userId, req.user.id)))
-      .returning();
+    if (!Number.isInteger(nextQuantity) || nextQuantity <= 0) {
+      return res.status(400).json({ message: "Quantity must be at least 1" });
+    }
 
-    if (!cartItem) {
+    const [existingItem] = await db
+      .select()
+      .from(carts)
+      .where(and(eq(carts.id, req.params.id), eq(carts.userId, req.user.id)));
+
+    if (!existingItem) {
       return res.status(404).json({ message: "Cart item not found" });
     }
 
-    res.json(cartItem);
+    const [product] = await db
+      .select({ id: products.id, stock: products.stock })
+      .from(products)
+      .where(eq(products.id, existingItem.productId));
+
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    const availableStock = Number(product.stock || 0);
+    if (nextQuantity > availableStock) {
+      return res.status(400).json({
+        message: `Only ${availableStock} item(s) available in stock`,
+      });
+    }
+
+    const [cartItem] = await db
+      .update(carts)
+      .set({ quantity: nextQuantity, updatedAt: new Date() })
+      .where(and(eq(carts.id, req.params.id), eq(carts.userId, req.user.id)))
+      .returning();
+
+    let message = "Cart updated.";
+    if (nextQuantity > existingItem.quantity) {
+      message = "Item quantity increased in cart.";
+    } else if (nextQuantity < existingItem.quantity) {
+      message = "Item quantity decreased in cart.";
+    }
+
+    res.json({
+      ...cartItem,
+      message,
+    });
   } catch (error) {
     console.error("Update cart error:", error);
     res.status(500).json({ message: "Server error" });

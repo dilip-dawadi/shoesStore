@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useCart, useRemoveFromCart, useUpdateCart } from "../hooks/useCart";
 import { FiShoppingBag, FiTrash2, FiPlus, FiMinus } from "react-icons/fi";
-import { NotifyInfo } from "../toastify";
+import { NotifyInfo, NotifySuccess, NotifyError } from "../toastify";
 
 const CartPage = () => {
   const navigate = useNavigate();
@@ -34,11 +34,30 @@ const CartPage = () => {
       direction === "increase" ? item.quantity + 1 : item.quantity - 1;
     if (newQuantity <= 0) return;
 
-    updateCart({ id: itemId, data: { quantity: newQuantity } });
+    updateCart(
+      { id: itemId, data: { quantity: newQuantity } },
+      {
+        onSuccess: (response) => {
+          NotifySuccess(response.data?.message || "Cart updated.");
+        },
+        onError: (error) => {
+          NotifyError(
+            error.response?.data?.message || "Failed to update cart.",
+          );
+        },
+      },
+    );
   };
 
   const handleRemove = (itemId) => {
-    removeFromCart(itemId);
+    removeFromCart(itemId, {
+      onSuccess: (response) => {
+        NotifySuccess(response.data?.message || "Item removed from cart.");
+      },
+      onError: (error) => {
+        NotifyError(error.response?.data?.message || "Failed to remove item.");
+      },
+    });
   };
 
   const handleCheckout = () => {
@@ -134,16 +153,19 @@ const CartPage = () => {
                   {cartItems.map((item) => (
                     <div
                       key={item.id}
-                      className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-4 border-b border-border last:border-0"
+                      className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-center gap-4 pb-4 border-b border-border last:border-0"
                     >
-                      <div className="flex items-center space-x-4">
+                      <div className="flex items-center space-x-4 min-w-0">
                         <img
                           src={item.product?.images?.[0] || "/placeholder.jpg"}
                           alt={item.product?.name}
                           className="w-20 h-20 object-cover rounded-lg"
                         />
-                        <div>
-                          <h3 className="text-sm font-semibold text-foreground">
+                        <div className="min-w-0">
+                          <h3
+                            className="text-sm font-semibold text-foreground truncate"
+                            title={item.product?.name}
+                          >
                             {item.product?.name}
                           </h3>
                           <p className="text-xs text-muted-foreground">
@@ -152,7 +174,7 @@ const CartPage = () => {
                         </div>
                       </div>
 
-                      <div className="flex items-center space-x-3">
+                      <div className="flex items-center space-x-3 md:justify-self-center">
                         <button
                           onClick={() =>
                             handleQuantityChange(item.id, "decrease")
@@ -176,7 +198,7 @@ const CartPage = () => {
                         </button>
                       </div>
 
-                      <div className="flex items-center space-x-4">
+                      <div className="flex items-center space-x-4 md:justify-self-end">
                         <span className="text-sm font-bold text-foreground">
                           $
                           {(item.price || item.product?.price || 0) *

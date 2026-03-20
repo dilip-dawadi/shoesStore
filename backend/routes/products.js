@@ -1,6 +1,6 @@
 import express from "express";
 import { db } from "../db/index.js";
-import { products } from "../db/schema.js";
+import { products, reviews, users } from "../db/schema.js";
 import {
   eq,
   like,
@@ -482,15 +482,87 @@ router.get("/:id", async (req, res) => {
       });
     }
 
+    const productReviews = await db
+      .select({
+        id: reviews.id,
+        userId: reviews.userId,
+        rating: reviews.rating,
+        comment: reviews.comment,
+        createdAt: reviews.createdAt,
+        userName: users.name,
+      })
+      .from(reviews)
+      .leftJoin(users, eq(reviews.userId, users.id))
+      .where(eq(reviews.productId, productId))
+      .orderBy(desc(reviews.createdAt));
+
     res.json({
       success: true,
-      data: product,
+      data: {
+        ...product,
+        reviews: productReviews,
+      },
     });
   } catch (error) {
     console.error("❌ Get product error:", error);
     res.status(500).json({
       success: false,
       message: "Failed to fetch product",
+    });
+  }
+});
+
+/**
+ * @route   GET /api/products/:id/reviews
+ * @desc    Get reviews for a product
+ * @access  Public
+ */
+router.get("/:id/reviews", async (req, res) => {
+  try {
+    const productId = parseInt(req.params.id);
+
+    if (isNaN(productId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid product ID",
+      });
+    }
+
+    const [product] = await db
+      .select({ id: products.id })
+      .from(products)
+      .where(eq(products.id, productId));
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    const productReviews = await db
+      .select({
+        id: reviews.id,
+        userId: reviews.userId,
+        rating: reviews.rating,
+        comment: reviews.comment,
+        createdAt: reviews.createdAt,
+        userName: users.name,
+      })
+      .from(reviews)
+      .leftJoin(users, eq(reviews.userId, users.id))
+      .where(eq(reviews.productId, productId))
+      .orderBy(desc(reviews.createdAt));
+
+    res.json({
+      success: true,
+      data: productReviews,
+    });
+  } catch (error) {
+    console.error("❌ Get product reviews error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch product reviews",
     });
   }
 });
@@ -784,7 +856,7 @@ router.delete("/:id", authMiddleware, adminMiddleware, async (req, res) => {
 router.post("/:id/reviews", authMiddleware, async (req, res) => {
   try {
     const productId = parseInt(req.params.id);
-    const { rating } = req.body;
+    const { rating, comment } = req.body;
 
     if (isNaN(productId)) {
       return res.status(400).json({
@@ -800,6 +872,20 @@ router.post("/:id/reviews", authMiddleware, async (req, res) => {
       });
     }
 
+    const [existingReview] = await db
+      .select()
+      .from(reviews)
+      .where(
+        and(eq(reviews.productId, productId), eq(reviews.userId, req.user.id)),
+      );
+
+    if (existingReview) {
+      return res.status(400).json({
+        success: false,
+        message: "You have already reviewed this product",
+      });
+    }
+
     const [product] = await db
       .select()
       .from(products)
@@ -812,14 +898,25 @@ router.post("/:id/reviews", authMiddleware, async (req, res) => {
       });
     }
 
-    // Calculate new average rating
-    const currentRating = parseFloat(product.rating) || 0;
-    const currentReviews = product.numReviews || 0;
-    const newNumReviews = currentReviews + 1;
-    const newRating = (
-      (currentRating * currentReviews + parseFloat(rating)) /
-      newNumReviews
-    ).toFixed(1);
+    await db.insert(reviews).values({
+      productId,
+      userId: req.user.id,
+      rating: parseInt(rating),
+      comment: comment?.trim() || null,
+    });
+
+    const reviewStats = await db
+      .select({
+        numReviews: count(),
+        avgRating: sql`AVG(${reviews.rating})::numeric(2,1)`,
+      })
+      .from(reviews)
+      .where(eq(reviews.productId, productId));
+
+    const newNumReviews = Number(reviewStats[0]?.numReviews || 0);
+    const newRating = reviewStats[0]?.avgRating
+      ? String(reviewStats[0].avgRating)
+      : "0.0";
 
     const [updatedProduct] = await db
       .update(products)

@@ -24,6 +24,8 @@ const Orders = lazy(() => import("./pages/Orders"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Login = lazy(() => import("./pages/auth/Login"));
 const Register = lazy(() => import("./pages/auth/Register"));
+const ForgotPassword = lazy(() => import("./pages/auth/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/auth/ResetPassword"));
 const AdminDashboard = lazy(() => import("./pages/dashboard/AdminDashboard"));
 const UserDashboard = lazy(() => import("./pages/dashboard/UserDashboard"));
 const ManageProducts = lazy(() => import("./pages/dashboard/ManageProducts"));
@@ -195,6 +197,15 @@ const AppContent = () => {
                 </PublicOnlyRoute>
               }
             />
+            <Route
+              path="/forgot-password"
+              element={
+                <PublicOnlyRoute>
+                  <ForgotPassword />
+                </PublicOnlyRoute>
+              }
+            />
+            <Route path="/reset-password" element={<ResetPassword />} />
 
             {/* Protected Routes - Require Authentication */}
             <Route
