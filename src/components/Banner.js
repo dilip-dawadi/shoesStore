@@ -10,7 +10,7 @@ const Banner = ({ setFilters }) => {
     if (setFilters) {
       setFilters((prev) => ({ ...prev, category }));
     }
-    navigate("/products");
+    navigate(`/products?category=${category.toLowerCase()}`);
   };
 
   const ShoeForMen = () => handleCategoryClick("Men");

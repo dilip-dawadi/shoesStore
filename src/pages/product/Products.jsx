@@ -1,11 +1,11 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useProducts } from "../../hooks/useProducts";
 import AdvancedFilters from "../../components/filterProduct/AdvancedFilters";
 import { FiGrid, FiList, FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { AiOutlineHeart, AiFillHeart } from "react-icons/ai";
 import { HiShoppingCart } from "react-icons/hi";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAddToCart } from "../../hooks/useCart";
 import {
   useWishlist,
@@ -16,6 +16,7 @@ import { NotifySuccess, NotifyError } from "../../toastify";
 
 function Products() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [viewMode, setViewMode] = useState("grid");
   const [filters, setFilters] = useState({
     page: 1,
@@ -28,6 +29,31 @@ function Products() {
     maxPrice: "",
     search: "",
   });
+
+  useEffect(() => {
+    const categoryFromUrl = searchParams.get("category");
+    if (!categoryFromUrl) return;
+
+    const normalizedCategory = categoryFromUrl
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean)
+      .join(",");
+
+    if (!normalizedCategory) return;
+
+    setFilters((prev) => {
+      if (prev.category === normalizedCategory && prev.page === 1) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        category: normalizedCategory,
+        page: 1,
+      };
+    });
+  }, [searchParams]);
 
   const { data, isLoading, error } = useProducts(filters);
   const { mutate: addToCart, isPending: isAddingToCart } = useAddToCart();

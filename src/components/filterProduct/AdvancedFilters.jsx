@@ -100,13 +100,19 @@ const AdvancedFilters = ({ filters, setFilters, isLoading }) => {
 
   const handleMultiSelect = useCallback(
     (category, value) => {
+      const normalize = (input) => input.trim().toLowerCase();
       const currentValues = filters[category]
-        ? filters[category].split(",")
+        ? filters[category]
+            .split(",")
+            .map((v) => v.trim())
+            .filter(Boolean)
         : [];
       let newValues;
 
-      if (currentValues.includes(value)) {
-        newValues = currentValues.filter((v) => v !== value);
+      if (currentValues.some((v) => normalize(v) === normalize(value))) {
+        newValues = currentValues.filter(
+          (v) => normalize(v) !== normalize(value),
+        );
       } else {
         newValues = [...currentValues, value];
       }
@@ -151,9 +157,12 @@ const AdvancedFilters = ({ filters, setFilters, isLoading }) => {
   const isSelected = useCallback(
     (category, value) => {
       const currentValues = filters[category]
-        ? filters[category].split(",")
+        ? filters[category]
+            .split(",")
+            .map((v) => v.trim().toLowerCase())
+            .filter(Boolean)
         : [];
-      return currentValues.includes(value);
+      return currentValues.includes(value.trim().toLowerCase());
     },
     [filters],
   );
