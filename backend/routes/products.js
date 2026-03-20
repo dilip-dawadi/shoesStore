@@ -1,6 +1,6 @@
 import express from "express";
 import { db } from "../db/index.js";
-import { products, reviews, users } from "../db/schema.js";
+import { products, reviews, users, orders } from "../db/schema.js";
 import {
   eq,
   like,
@@ -13,6 +13,7 @@ import {
   count,
   sql,
   ilike,
+  inArray,
 } from "drizzle-orm";
 import { authMiddleware, adminMiddleware } from "../middleware/auth.js";
 
@@ -38,6 +39,26 @@ const PRICE_RANGES = {
   affordable: { min: 50, max: 100 },
   premium: { min: 100, max: 200 },
   luxury: { min: 200, max: 999999 },
+};
+
+const normalizeOrderItems = (items) => {
+  if (!Array.isArray(items)) {
+    return [];
+  }
+  return items;
+};
+
+const itemHasProduct = (item, productId) => {
+  const directId = Number(item?.productId ?? item?.id);
+  const nestedId = Number(item?.product?.id);
+  const targetId = Number(productId);
+
+  return directId === targetId || nestedId === targetId;
+};
+
+const hasPurchasedProduct = (orderItems, productId) => {
+  const items = normalizeOrderItems(orderItems);
+  return items.some((item) => itemHasProduct(item, productId));
 };
 
 // ==================== UTILITIES ====================
@@ -496,11 +517,45 @@ router.get("/:id", async (req, res) => {
       .where(eq(reviews.productId, productId))
       .orderBy(desc(reviews.createdAt));
 
+    const reviewerIds = [
+      ...new Set(
+        productReviews.map((review) => Number(review.userId)).filter(Boolean),
+      ),
+    ];
+
+    const reviewerOrders =
+      reviewerIds.length > 0
+        ? await db
+            .select({
+              userId: orders.userId,
+              status: orders.status,
+              items: orders.items,
+            })
+            .from(orders)
+            .where(
+              and(
+                inArray(orders.userId, reviewerIds),
+                sql`${orders.status} <> 'cancelled'`,
+              ),
+            )
+        : [];
+
+    const verifiedUserIds = new Set(
+      reviewerOrders
+        .filter((order) => hasPurchasedProduct(order.items, productId))
+        .map((order) => Number(order.userId)),
+    );
+
+    const reviewsWithPurchaseStatus = productReviews.map((review) => ({
+      ...review,
+      verifiedPurchase: verifiedUserIds.has(Number(review.userId)),
+    }));
+
     res.json({
       success: true,
       data: {
         ...product,
-        reviews: productReviews,
+        reviews: reviewsWithPurchaseStatus,
       },
     });
   } catch (error) {
@@ -554,9 +609,43 @@ router.get("/:id/reviews", async (req, res) => {
       .where(eq(reviews.productId, productId))
       .orderBy(desc(reviews.createdAt));
 
+    const reviewerIds = [
+      ...new Set(
+        productReviews.map((review) => Number(review.userId)).filter(Boolean),
+      ),
+    ];
+
+    const reviewerOrders =
+      reviewerIds.length > 0
+        ? await db
+            .select({
+              userId: orders.userId,
+              status: orders.status,
+              items: orders.items,
+            })
+            .from(orders)
+            .where(
+              and(
+                inArray(orders.userId, reviewerIds),
+                sql`${orders.status} <> 'cancelled'`,
+              ),
+            )
+        : [];
+
+    const verifiedUserIds = new Set(
+      reviewerOrders
+        .filter((order) => hasPurchasedProduct(order.items, productId))
+        .map((order) => Number(order.userId)),
+    );
+
+    const reviewsWithPurchaseStatus = productReviews.map((review) => ({
+      ...review,
+      verifiedPurchase: verifiedUserIds.has(Number(review.userId)),
+    }));
+
     res.json({
       success: true,
-      data: productReviews,
+      data: reviewsWithPurchaseStatus,
     });
   } catch (error) {
     console.error("❌ Get product reviews error:", error);
@@ -895,6 +984,27 @@ router.post("/:id/reviews", authMiddleware, async (req, res) => {
       return res.status(404).json({
         success: false,
         message: "Product not found",
+      });
+    }
+
+    const userOrders = await db
+      .select({ id: orders.id, status: orders.status, items: orders.items })
+      .from(orders)
+      .where(
+        and(
+          eq(orders.userId, req.user.id),
+          sql`${orders.status} <> 'cancelled'`,
+        ),
+      );
+
+    const hasPurchased = userOrders.some((order) =>
+      hasPurchasedProduct(order.items, productId),
+    );
+
+    if (!hasPurchased) {
+      return res.status(400).json({
+        success: false,
+        message: "Only customers who purchased this product can leave a review",
       });
     }
 

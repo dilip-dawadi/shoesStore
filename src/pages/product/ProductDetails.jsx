@@ -7,6 +7,8 @@ import { Button } from "../../components/ui/button";
 import { useAuth } from "../../context/AuthContext";
 import ConfirmDialog from "../../components/customDialog/ConfirmDialog";
 
+const REVIEWS_PER_PAGE = 4;
+
 const ProductDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -23,6 +25,7 @@ const ProductDetails = () => {
   const [selectedColor, setSelectedColor] = useState("");
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
+  const [reviewPage, setReviewPage] = useState(1);
 
   const product = singleShoeData?.data || singleShoeData;
   const productName = product?.name || product?.title || "Product";
@@ -55,6 +58,14 @@ const ProductDetails = () => {
   const hasReviewed = productReviews.some(
     (review) => Number(review.userId) === Number(user?.id),
   );
+  const totalReviewPages = Math.max(
+    1,
+    Math.ceil(productReviews.length / REVIEWS_PER_PAGE),
+  );
+  const paginatedReviews = useMemo(() => {
+    const start = (reviewPage - 1) * REVIEWS_PER_PAGE;
+    return productReviews.slice(start, start + REVIEWS_PER_PAGE);
+  }, [productReviews, reviewPage]);
 
   useEffect(() => {
     if (productSizes.length) {
@@ -64,6 +75,10 @@ const ProductDetails = () => {
       setSelectedColor((prev) => prev || productColors[0]);
     }
   }, [productSizes, productColors]);
+
+  useEffect(() => {
+    setReviewPage(1);
+  }, [productReviews.length]);
 
   const formattedPrice = useMemo(() => {
     const value = Number(productPrice);
@@ -419,15 +434,22 @@ const ProductDetails = () => {
                 </p>
               ) : (
                 <div className="space-y-4">
-                  {productReviews.map((review) => (
+                  {paginatedReviews.map((review) => (
                     <div
                       key={review.id}
                       className="rounded-xl border border-border bg-background p-4"
                     >
                       <div className="flex items-center justify-between">
-                        <p className="text-sm font-semibold text-foreground">
-                          {review.userName || "Verified Buyer"}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-semibold text-foreground">
+                            {review.userName || "Customer"}
+                          </p>
+                          {review.verifiedPurchase ? (
+                            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+                              Verified Purchase
+                            </span>
+                          ) : null}
+                        </div>
                         <p className="text-xs text-muted-foreground">
                           {review.createdAt
                             ? new Date(review.createdAt).toLocaleDateString()
@@ -445,6 +467,38 @@ const ProductDetails = () => {
                       </p>
                     </div>
                   ))}
+
+                  {totalReviewPages > 1 ? (
+                    <div className="flex items-center justify-between border-t border-border pt-3">
+                      <p className="text-xs text-muted-foreground">
+                        Page {reviewPage} of {totalReviewPages}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setReviewPage((prev) => Math.max(1, prev - 1))
+                          }
+                          disabled={reviewPage === 1}
+                          className="rounded-md border border-border px-3 py-1 text-xs font-medium text-foreground disabled:opacity-50"
+                        >
+                          Prev
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setReviewPage((prev) =>
+                              Math.min(totalReviewPages, prev + 1),
+                            )
+                          }
+                          disabled={reviewPage === totalReviewPages}
+                          className="rounded-md border border-border px-3 py-1 text-xs font-medium text-foreground disabled:opacity-50"
+                        >
+                          Next
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               )}
             </div>
