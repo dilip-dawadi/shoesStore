@@ -1,13 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { loadStripe } from "@stripe/stripe-js";
-import {
-  Elements,
-  CardElement,
-  useStripe,
-  useElements,
-} from "@stripe/react-stripe-js";
 import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useCart } from "../hooks/useCart";
 import {
   FiCreditCard,
@@ -24,7 +18,12 @@ import {
   SiMastercard,
   SiAmericanexpress,
 } from "react-icons/si";
-import { NotifySuccess, NotifyError, LoadingBtn } from "../toastify";
+import {
+  NotifySuccess,
+  NotifyError,
+  NotifyInfo,
+  LoadingBtn,
+} from "../toastify";
 import api from "../lib/axios";
 import { SearchableSelect } from "../components/customInputs/SearchableSelect";
 import { countries } from "../constants/countries";
@@ -33,12 +32,14 @@ const stripePromise = loadStripe(
   import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "pk_test_your_key_here",
 );
 
+const CHECKOUT_STORAGE_KEY = "checkout:pendingOrder";
+
 const CheckoutForm = () => {
-  const stripe = useStripe();
-  const elements = useElements();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { data: cart } = useCart();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isConfirmingSession, setIsConfirmingSession] = useState(false);
   const [shippingInfo, setShippingInfo] = useState({
     fullName: "",
     email: "",
@@ -78,6 +79,15 @@ const CheckoutForm = () => {
     };
   }, []);
 
+  useEffect(() => {
+    const canceled = searchParams.get("canceled");
+    if (canceled === "true") {
+      NotifyInfo("Payment canceled. You can continue checkout anytime.");
+      sessionStorage.removeItem(CHECKOUT_STORAGE_KEY);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
   const cartItems = cart?.items || [];
   const toNumber = (value) =>
     Number.isFinite(Number(value)) ? Number(value) : 0;
@@ -101,12 +111,64 @@ const CheckoutForm = () => {
     });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!stripe || !elements) {
+  useEffect(() => {
+    const sessionId = searchParams.get("session_id");
+    if (!sessionId || isConfirmingSession) {
       return;
     }
+
+    const finalizeOrder = async () => {
+      try {
+        setIsConfirmingSession(true);
+        const pendingOrderRaw = sessionStorage.getItem(CHECKOUT_STORAGE_KEY);
+
+        if (!pendingOrderRaw) {
+          NotifyError("Missing checkout data. Please try checkout again.");
+          setSearchParams({}, { replace: true });
+          return;
+        }
+
+        const pendingOrder = JSON.parse(pendingOrderRaw);
+
+        const response = await api.post("/orders/confirm-checkout-session", {
+          sessionId,
+          ...pendingOrder,
+        });
+
+        try {
+          await api.put("/users/profile", {
+            address: pendingOrder.shippingInfo?.address,
+            city: pendingOrder.shippingInfo?.city,
+            state: pendingOrder.shippingInfo?.state,
+            zipCode: pendingOrder.shippingInfo?.zipCode,
+            country: pendingOrder.shippingInfo?.country,
+          });
+        } catch (profileError) {
+          console.error("Failed to update profile:", profileError);
+        }
+
+        sessionStorage.removeItem(CHECKOUT_STORAGE_KEY);
+        setSearchParams({}, { replace: true });
+        NotifySuccess(
+          response.data?.message || "Payment successful! Order placed.",
+        );
+        navigate("/orders", { replace: true });
+      } catch (error) {
+        console.error("Checkout confirmation error:", error);
+        NotifyError(
+          error.response?.data?.message ||
+            "Could not verify payment. Please contact support if amount was charged.",
+        );
+      } finally {
+        setIsConfirmingSession(false);
+      }
+    };
+
+    finalizeOrder();
+  }, [isConfirmingSession, navigate, searchParams, setSearchParams]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
     // Validate form
     const requiredFields = [
@@ -136,82 +198,64 @@ const CheckoutForm = () => {
     setIsProcessing(true);
 
     try {
-      // Create payment intent on backend
-      const response = await api.post("/orders/create-payment-intent", {
-        amount: Math.round(total * 100), // Convert to cents
+      const normalizedItems = cartItems.map((item) => ({
+        productId: item.productId ?? item.product?.id,
+        quantity: Number(item.quantity) || 1,
+        price: Number(item.price ?? item.product?.price ?? 0),
+        name: item.product?.name,
+        image: item.product?.images?.[0],
+      }));
+
+      const pendingOrder = {
         shippingInfo,
-        items: cartItems.map((item) => ({
-          productId: item.productId,
-          quantity: item.quantity,
-          price: item.price,
-        })),
-      });
+        items: normalizedItems,
+        subtotal,
+        shipping,
+        tax,
+        total,
+      };
 
-      const { clientSecret } = response.data;
-
-      // Confirm card payment
-      const { error, paymentIntent } = await stripe.confirmCardPayment(
-        clientSecret,
-        {
-          payment_method: {
-            card: elements.getElement(CardElement),
-            billing_details: {
-              name: shippingInfo.fullName,
-              email: shippingInfo.email,
-              phone: shippingInfo.phone,
-              address: {
-                line1: shippingInfo.address,
-                city: shippingInfo.city,
-                state: shippingInfo.state,
-                postal_code: shippingInfo.zipCode,
-                country: shippingInfo.country,
-              },
-            },
-          },
-        },
+      sessionStorage.setItem(
+        CHECKOUT_STORAGE_KEY,
+        JSON.stringify(pendingOrder),
       );
 
-      if (error) {
-        NotifyError(error.message);
-        setIsProcessing(false);
+      const response = await api.post("/orders/create-checkout-session", {
+        ...pendingOrder,
+      });
+
+      // Preferred flow: direct redirect to Stripe hosted URL.
+      if (response.data?.url) {
+        window.location.assign(response.data.url);
         return;
       }
 
-      if (paymentIntent.status === "succeeded") {
-        // Create order on backend
-        await api.post("/orders", {
-          paymentIntentId: paymentIntent.id,
-          shippingInfo,
-          items: cartItems,
-          subtotal,
-          shipping,
-          tax,
-          total,
+      // Fallback: redirect using sessionId and Stripe.js if URL is not returned.
+      const stripe = await stripePromise;
+      if (!stripe) {
+        throw new Error(
+          "Stripe redirect URL is missing and Stripe.js is not initialized",
+        );
+      }
+
+      if (response.data?.sessionId) {
+        const { error } = await stripe.redirectToCheckout({
+          sessionId: response.data.sessionId,
         });
-
-        // Save shipping info to user profile for future orders
-        try {
-          await api.put("/users/profile", {
-            address: shippingInfo.address,
-            city: shippingInfo.city,
-            state: shippingInfo.state,
-            zipCode: shippingInfo.zipCode,
-            country: shippingInfo.country,
-          });
-        } catch (profileError) {
-          // Silent fail - don't block order completion
-          console.error("Failed to update profile:", profileError);
+        if (error) {
+          throw error;
         }
-
-        NotifySuccess("Payment successful! Order placed.");
-        setTimeout(() => {
-          navigate("/orders");
-        }, 2000);
+      } else if (response.data?.url) {
+        window.location.href = response.data.url;
+      } else {
+        throw new Error("Invalid checkout session response");
       }
     } catch (error) {
       console.error("Payment error:", error);
       NotifyError(
-        error.response?.data?.message || "Payment failed. Please try again.",
+        error.response?.data?.message ||
+          error.message ||
+          "Payment failed. Please try again.",
       );
     } finally {
       setIsProcessing(false);
@@ -386,49 +430,16 @@ const CheckoutForm = () => {
                   </h2>
                 </div>
 
-                <div className="mb-4 rounded-lg border border-primary/20 bg-primary/5 p-3">
-                  <div className="flex items-center justify-between gap-3 flex-wrap">
-                    <div className="flex items-center gap-2 text-foreground font-semibold">
-                      <SiStripe size={22} className="text-[#635BFF]" />
-                      <span>Powered by Stripe</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <FiLock size={14} />
-                      <span>Encrypted and PCI-compliant checkout</span>
-                    </div>
-                  </div>
-                  <div className="mt-3 flex items-center gap-3 text-muted-foreground">
-                    <SiVisa size={24} />
-                    <SiMastercard size={24} />
-                    <SiAmericanexpress size={24} />
-                  </div>
-                </div>
-
                 <div className="border border-border rounded-lg p-4 bg-secondary/10">
-                  <CardElement
-                    options={{
-                      hidePostalCode: true,
-                      iconStyle: "solid",
-                      style: {
-                        base: {
-                          fontSize: "16px",
-                          color: "hsl(var(--foreground))",
-                          "::placeholder": {
-                            color: "hsl(var(--muted-foreground))",
-                          },
-                        },
-                        invalid: {
-                          color: "hsl(var(--destructive))",
-                        },
-                      },
-                    }}
-                  />
+                  <p className="text-sm text-foreground font-medium">
+                    You will be redirected to Stripe's secure hosted checkout to
+                    enter your card details.
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Card information is collected on Stripe and never touches
+                    our servers.
+                  </p>
                 </div>
-
-                <p className="text-xs text-muted-foreground mt-3">
-                  Your card details are securely processed by Stripe. We never
-                  store your full card number.
-                </p>
               </motion.div>
 
               {/* Submit Button */}
@@ -437,13 +448,19 @@ const CheckoutForm = () => {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.2 }}
                 type="submit"
-                disabled={!stripe || isProcessing}
+                disabled={isProcessing || isConfirmingSession}
                 className="w-full bg-primary text-primary-foreground py-4 rounded-xl font-bold text-lg hover:bg-primary/90 disabled:bg-muted disabled:cursor-not-allowed transition-colors shadow-lg hover:shadow-xl"
               >
-                {isProcessing ? (
-                  <LoadingBtn message="Processing Payment..." />
+                {isProcessing || isConfirmingSession ? (
+                  <LoadingBtn
+                    message={
+                      isConfirmingSession
+                        ? "Confirming Payment..."
+                        : "Redirecting to Stripe..."
+                    }
+                  />
                 ) : (
-                  `Pay $${formatCurrency(total)}`
+                  `Continue to Secure Payment $${formatCurrency(total)}`
                 )}
               </motion.button>
             </form>
@@ -530,11 +547,7 @@ const CheckoutForm = () => {
 };
 
 const Checkout = () => {
-  return (
-    <Elements stripe={stripePromise}>
-      <CheckoutForm />
-    </Elements>
-  );
+  return <CheckoutForm />;
 };
 
 export default Checkout;

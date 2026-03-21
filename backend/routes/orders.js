@@ -8,6 +8,23 @@ import Stripe from "stripe";
 const router = express.Router();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
 
+const toNumber = (value) => {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
+};
+
+const toMinorUnits = (value) => Math.round(toNumber(value) * 100);
+
+const normalizeItems = (items = []) =>
+  (Array.isArray(items) ? items : []).map((item) => ({
+    ...item,
+    productId: item.productId ?? item.product?.id,
+    quantity: Math.max(1, parseInt(item.quantity) || 1),
+    price: toNumber(item.price ?? item.product?.price),
+    name: item.product?.name || item.name || `Product ${item.productId || ""}`,
+    image: item.product?.images?.[0] || item.image || null,
+  }));
+
 // ==================== CREATE PAYMENT INTENT ====================
 router.post("/create-payment-intent", authMiddleware, async (req, res) => {
   try {
@@ -49,6 +66,226 @@ router.post("/create-payment-intent", authMiddleware, async (req, res) => {
     res.status(500).json({
       success: false,
       message: error.message || "Failed to create payment intent",
+    });
+  }
+});
+
+// ==================== CREATE CHECKOUT SESSION ====================
+router.post("/create-checkout-session", authMiddleware, async (req, res) => {
+  try {
+    const { shippingInfo, items, subtotal, shipping, tax, total } = req.body;
+    const userId = req.user.id;
+
+    const normalizedItems = normalizeItems(items);
+
+    if (!shippingInfo || normalizedItems.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Shipping info and items are required",
+      });
+    }
+
+    for (const item of normalizedItems) {
+      if (!item.productId) {
+        return res.status(400).json({
+          success: false,
+          message: "One or more cart items are missing product ID",
+        });
+      }
+
+      if (!Number.isFinite(item.price) || item.price <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid price for product ${item.productId}`,
+        });
+      }
+
+      if (!Number.isInteger(item.quantity) || item.quantity <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid quantity for product ${item.productId}`,
+        });
+      }
+    }
+
+    const checkoutTotal = toNumber(total);
+    if (checkoutTotal <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid total amount",
+      });
+    }
+
+    const frontendUrl =
+      process.env.FRONTEND_URL ||
+      process.env.CLIENT_URL ||
+      "http://localhost:3000";
+
+    const lineItems = normalizedItems.map((item) => ({
+      price_data: {
+        currency: "usd",
+        product_data: {
+          name: item.name,
+        },
+        unit_amount: toMinorUnits(item.price),
+      },
+      quantity: item.quantity,
+    }));
+
+    // Stripe Checkout line items should include shipping/tax as separate lines if needed.
+    if (toNumber(shipping) > 0) {
+      lineItems.push({
+        price_data: {
+          currency: "usd",
+          product_data: { name: "Shipping" },
+          unit_amount: toMinorUnits(shipping),
+        },
+        quantity: 1,
+      });
+    }
+
+    if (toNumber(tax) > 0) {
+      lineItems.push({
+        price_data: {
+          currency: "usd",
+          product_data: { name: "Tax" },
+          unit_amount: toMinorUnits(tax),
+        },
+        quantity: 1,
+      });
+    }
+
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      payment_method_types: ["card"],
+      line_items: lineItems,
+      customer_email: shippingInfo.email || undefined,
+      success_url: `${frontendUrl}/checkout?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${frontendUrl}/checkout?canceled=true`,
+      metadata: {
+        userId: String(userId),
+        subtotal: String(toNumber(subtotal)),
+        shipping: String(toNumber(shipping)),
+        tax: String(toNumber(tax)),
+        total: String(checkoutTotal),
+      },
+    });
+
+    res.json({
+      success: true,
+      sessionId: session.id,
+      url: session.url,
+    });
+  } catch (error) {
+    console.error("Create checkout session error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to create checkout session",
+    });
+  }
+});
+
+// ==================== CONFIRM CHECKOUT SESSION ====================
+router.post("/confirm-checkout-session", authMiddleware, async (req, res) => {
+  try {
+    const { sessionId, shippingInfo, items, subtotal, shipping, tax, total } =
+      req.body;
+    const userId = req.user.id;
+
+    if (!sessionId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Session ID is required" });
+    }
+
+    const session = await stripe.checkout.sessions.retrieve(sessionId, {
+      expand: ["payment_intent"],
+    });
+
+    if (!session || session.mode !== "payment") {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid checkout session" });
+    }
+
+    if (String(session.metadata?.userId) !== String(userId)) {
+      return res
+        .status(403)
+        .json({ success: false, message: "Session does not belong to user" });
+    }
+
+    if (session.payment_status !== "paid") {
+      return res
+        .status(400)
+        .json({ success: false, message: "Payment not successful" });
+    }
+
+    const paymentIntentId =
+      typeof session.payment_intent === "string"
+        ? session.payment_intent
+        : session.payment_intent?.id;
+
+    const normalizedItems = normalizeItems(items);
+
+    if (!shippingInfo || normalizedItems.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Shipping info and items are required",
+      });
+    }
+
+    if (paymentIntentId) {
+      const [existingOrder] = await db
+        .select()
+        .from(orders)
+        .where(eq(orders.paymentIntentId, paymentIntentId));
+
+      if (existingOrder) {
+        return res.json({
+          success: true,
+          data: existingOrder,
+          message: "Order already created",
+        });
+      }
+    }
+
+    const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+
+    const [order] = await db
+      .insert(orders)
+      .values({
+        userId,
+        orderNumber,
+        status: "pending",
+        items: normalizedItems,
+        totalAmount: String(toNumber(total)),
+        shippingAddress: shippingInfo,
+        paymentIntentId: paymentIntentId || session.id,
+      })
+      .returning();
+
+    try {
+      await db.delete(carts).where(eq(carts.userId, userId));
+    } catch (cartError) {
+      console.error("Error clearing cart:", cartError);
+    }
+
+    res.json({
+      success: true,
+      data: {
+        ...order,
+        subtotal: toNumber(subtotal),
+        shipping: toNumber(shipping),
+        tax: toNumber(tax),
+        total: toNumber(total),
+      },
+      message: "Order created successfully",
+    });
+  } catch (error) {
+    console.error("Confirm checkout session error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to confirm checkout session",
     });
   }
 });
