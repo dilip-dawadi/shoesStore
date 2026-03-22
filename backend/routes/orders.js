@@ -1,9 +1,13 @@
 import express from "express";
 import { db } from "../db/index.js";
-import { orders, carts } from "../db/schema.js";
+import { orders, carts, users } from "../db/schema.js";
 import { eq, and, desc } from "drizzle-orm";
 import { authMiddleware, adminMiddleware } from "../middleware/auth.js";
 import Stripe from "stripe";
+import {
+  sendOrderConfirmation,
+  sendOrderStatusUpdate,
+} from "../services/email.js";
 
 const router = express.Router();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
@@ -23,7 +27,166 @@ const normalizeItems = (items = []) =>
     price: toNumber(item.price ?? item.product?.price),
     name: item.product?.name || item.name || `Product ${item.productId || ""}`,
     image: item.product?.images?.[0] || item.image || null,
+    brand: item.product?.brand || item.brand || null,
+    size: item.size || null,
+    color: item.color || null,
   }));
+
+const toPublicImageUrl = (image, frontendUrl) => {
+  if (!image || image === "/placeholder.jpg") {
+    return null;
+  }
+
+  if (image.startsWith("http://") || image.startsWith("https://")) {
+    return image;
+  }
+
+  const base = frontendUrl.endsWith("/")
+    ? frontendUrl.slice(0, -1)
+    : frontendUrl;
+
+  const path = image.startsWith("/") ? image : `/${image}`;
+  return `${base}${path}`;
+};
+
+const buildItemDescription = (item) => {
+  const chips = [];
+  if (item.brand) chips.push(item.brand);
+  if (item.size) chips.push(`Size: ${item.size}`);
+  if (item.color) chips.push(`Color: ${item.color}`);
+  return chips.join(" • ") || undefined;
+};
+
+const buildStripeItemName = (item) => {
+  const baseName = item.name || "Product";
+  const qty = Math.max(1, Number(item.quantity) || 1);
+  return qty > 1 ? `${baseName} x${qty}` : baseName;
+};
+
+const buildStripeAddress = (shippingInfo = {}) => {
+  const address = {
+    line1: shippingInfo.address || undefined,
+    city: shippingInfo.city || undefined,
+    state: shippingInfo.state || undefined,
+    postal_code: shippingInfo.zipCode || undefined,
+    country: shippingInfo.country || undefined,
+  };
+
+  const hasAtLeastOneField = Object.values(address).some(Boolean);
+  return hasAtLeastOneField ? address : undefined;
+};
+
+const TAX_RATE = 0.08;
+
+const COUNTRY_NAME_TO_CODE = {
+  "UNITED STATES": "US",
+  USA: "US",
+  "UNITED KINGDOM": "GB",
+  UK: "GB",
+  CANADA: "CA",
+  AUSTRALIA: "AU",
+  "NEW ZEALAND": "NZ",
+  INDIA: "IN",
+  NEPAL: "NP",
+};
+
+const normalizeCountryCode = (value) => {
+  if (!value) return "";
+  const raw = String(value).trim();
+  if (!raw) return "";
+
+  const upper = raw.toUpperCase();
+  if (upper.length === 2) {
+    return upper;
+  }
+
+  return COUNTRY_NAME_TO_CODE[upper] || "";
+};
+
+const pickFirstNonEmpty = (...values) =>
+  values.find((value) => String(value || "").trim().length > 0) || "";
+
+const resolveShippingInfo = (
+  profile = {},
+  shippingInfo = {},
+  lastShippingInfo = {},
+) => ({
+  fullName: pickFirstNonEmpty(
+    shippingInfo.fullName,
+    profile.name,
+    lastShippingInfo.fullName,
+    lastShippingInfo.name,
+  ),
+  email: pickFirstNonEmpty(
+    shippingInfo.email,
+    profile.email,
+    lastShippingInfo.email,
+  ),
+  phone: pickFirstNonEmpty(
+    shippingInfo.phone,
+    profile.phone,
+    lastShippingInfo.phone,
+  ),
+  address: pickFirstNonEmpty(
+    shippingInfo.address,
+    profile.address,
+    lastShippingInfo.address,
+    lastShippingInfo.line1,
+  ),
+  city: pickFirstNonEmpty(
+    shippingInfo.city,
+    profile.city,
+    lastShippingInfo.city,
+  ),
+  state: pickFirstNonEmpty(
+    shippingInfo.state,
+    profile.state,
+    lastShippingInfo.state,
+    lastShippingInfo.province,
+  ),
+  zipCode: pickFirstNonEmpty(
+    shippingInfo.zipCode,
+    profile.zipCode,
+    lastShippingInfo.zipCode,
+    lastShippingInfo.postalCode,
+    lastShippingInfo.postal_code,
+  ),
+  country: normalizeCountryCode(
+    pickFirstNonEmpty(
+      shippingInfo.country,
+      profile.country,
+      lastShippingInfo.country,
+    ),
+  ),
+});
+
+const extractShippingInfoFromStripeSession = (session = {}, fallback = {}) => {
+  const shippingDetails = session.shipping_details || {};
+  const customerDetails = session.customer_details || {};
+  const stripeAddress =
+    shippingDetails.address || customerDetails.address || {};
+
+  return {
+    fullName: pickFirstNonEmpty(
+      shippingDetails.name,
+      customerDetails.name,
+      fallback.fullName,
+    ),
+    email: pickFirstNonEmpty(customerDetails.email, fallback.email),
+    phone: pickFirstNonEmpty(
+      shippingDetails.phone,
+      customerDetails.phone,
+      fallback.phone,
+    ),
+    address: pickFirstNonEmpty(stripeAddress.line1, fallback.address),
+    city: pickFirstNonEmpty(stripeAddress.city, fallback.city),
+    state: pickFirstNonEmpty(stripeAddress.state, fallback.state),
+    zipCode: pickFirstNonEmpty(stripeAddress.postal_code, fallback.zipCode),
+    country: normalizeCountryCode(
+      pickFirstNonEmpty(stripeAddress.country, fallback.country),
+    ),
+  };
+};
 
 // ==================== CREATE PAYMENT INTENT ====================
 router.post("/create-payment-intent", authMiddleware, async (req, res) => {
@@ -76,12 +239,39 @@ router.post("/create-checkout-session", authMiddleware, async (req, res) => {
     const { shippingInfo, items, subtotal, shipping, tax, total } = req.body;
     const userId = req.user.id;
 
+    const [profile] = await db
+      .select({
+        name: users.name,
+        email: users.email,
+        phone: users.phone,
+        address: users.address,
+        city: users.city,
+        state: users.state,
+        zipCode: users.zipCode,
+        country: users.country,
+      })
+      .from(users)
+      .where(eq(users.id, userId));
+
+    const [latestOrder] = await db
+      .select({ shippingAddress: orders.shippingAddress })
+      .from(orders)
+      .where(eq(orders.userId, userId))
+      .orderBy(desc(orders.createdAt))
+      .limit(1);
+
+    const resolvedShippingInfo = resolveShippingInfo(
+      profile || {},
+      shippingInfo || {},
+      latestOrder?.shippingAddress || {},
+    );
+
     const normalizedItems = normalizeItems(items);
 
-    if (!shippingInfo || normalizedItems.length === 0) {
+    if (normalizedItems.length === 0) {
       return res.status(400).json({
         success: false,
-        message: "Shipping info and items are required",
+        message: "Items are required",
       });
     }
 
@@ -121,11 +311,22 @@ router.post("/create-checkout-session", authMiddleware, async (req, res) => {
       process.env.CLIENT_URL ||
       "http://localhost:3000";
 
+    if (!resolvedShippingInfo.email) {
+      return res.status(400).json({
+        success: false,
+        message: "A valid email is required for checkout",
+      });
+    }
+
     const lineItems = normalizedItems.map((item) => ({
       price_data: {
         currency: "usd",
         product_data: {
-          name: item.name,
+          name: buildStripeItemName(item),
+          description: buildItemDescription(item),
+          images: toPublicImageUrl(item.image, frontendUrl)
+            ? [toPublicImageUrl(item.image, frontendUrl)]
+            : undefined,
         },
         unit_amount: toMinorUnits(item.price),
       },
@@ -137,7 +338,10 @@ router.post("/create-checkout-session", authMiddleware, async (req, res) => {
       lineItems.push({
         price_data: {
           currency: "usd",
-          product_data: { name: "Shipping" },
+          product_data: {
+            name: "Shipping & Delivery",
+            description: "Standard delivery charge",
+          },
           unit_amount: toMinorUnits(shipping),
         },
         quantity: 1,
@@ -148,25 +352,108 @@ router.post("/create-checkout-session", authMiddleware, async (req, res) => {
       lineItems.push({
         price_data: {
           currency: "usd",
-          product_data: { name: "Tax" },
+          product_data: {
+            name: `Estimated Tax (${Math.round(TAX_RATE * 100)}%)`,
+            description: "Sales tax calculation",
+          },
           unit_amount: toMinorUnits(tax),
         },
         quantity: 1,
       });
     }
 
+    // Prefill Stripe Checkout using shipping form data so users only need card details.
+    const customerEmail = resolvedShippingInfo.email || undefined;
+    const customerAddress = buildStripeAddress(resolvedShippingInfo);
+    const customerShipping = customerAddress
+      ? {
+          name: resolvedShippingInfo.fullName || undefined,
+          phone: resolvedShippingInfo.phone || undefined,
+          address: customerAddress,
+        }
+      : undefined;
+    let customerId;
+
+    if (customerEmail) {
+      const existingCustomers = await stripe.customers.list({
+        email: customerEmail,
+        limit: 1,
+      });
+
+      if (existingCustomers.data.length > 0) {
+        customerId = existingCustomers.data[0].id;
+        await stripe.customers.update(customerId, {
+          name: resolvedShippingInfo.fullName || undefined,
+          phone: resolvedShippingInfo.phone || undefined,
+          address: customerAddress,
+          shipping: customerShipping,
+        });
+      } else {
+        const customer = await stripe.customers.create({
+          email: customerEmail,
+          name: resolvedShippingInfo.fullName || undefined,
+          phone: resolvedShippingInfo.phone || undefined,
+          address: customerAddress,
+          shipping: customerShipping,
+        });
+        customerId = customer.id;
+      }
+    }
+
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       payment_method_types: ["card"],
       line_items: lineItems,
-      customer_email: shippingInfo.email || undefined,
+      customer: customerId,
+      customer_email: customerId ? undefined : customerEmail,
       success_url: `${frontendUrl}/checkout?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${frontendUrl}/checkout?canceled=true`,
+      billing_address_collection: "auto",
+      phone_number_collection: { enabled: false },
+      shipping_address_collection: {
+        allowed_countries: [
+          "US",
+          "CA",
+          "GB",
+          "AU",
+          "NZ",
+          "IN",
+          "NP",
+          "DE",
+          "FR",
+          "NL",
+          "BE",
+          "DK",
+          "SE",
+          "NO",
+          "FI",
+          "IE",
+          "ES",
+          "IT",
+          "CH",
+          "AT",
+        ],
+      },
+      custom_text: {
+        submit: {
+          message:
+            "Secure payment powered by Stripe. Your order is confirmed instantly after payment.",
+        },
+      },
+      payment_intent_data: {
+        description: `Order for ${resolvedShippingInfo.fullName || "Customer"}`,
+      },
+      customer_update: {
+        name: "auto",
+        address: "auto",
+        shipping: "auto",
+      },
       metadata: {
         userId: String(userId),
         subtotal: String(toNumber(subtotal)),
         shipping: String(toNumber(shipping)),
         tax: String(toNumber(tax)),
+        taxRate: String(TAX_RATE),
         total: String(checkoutTotal),
       },
     });
@@ -227,10 +514,15 @@ router.post("/confirm-checkout-session", authMiddleware, async (req, res) => {
 
     const normalizedItems = normalizeItems(items);
 
-    if (!shippingInfo || normalizedItems.length === 0) {
+    const finalShippingInfo = extractShippingInfoFromStripeSession(
+      session,
+      shippingInfo || {},
+    );
+
+    if (normalizedItems.length === 0) {
       return res.status(400).json({
         success: false,
-        message: "Shipping info and items are required",
+        message: "Items are required",
       });
     }
 
@@ -259,10 +551,57 @@ router.post("/confirm-checkout-session", authMiddleware, async (req, res) => {
         status: "pending",
         items: normalizedItems,
         totalAmount: String(toNumber(total)),
-        shippingAddress: shippingInfo,
+        shippingAddress: finalShippingInfo,
         paymentIntentId: paymentIntentId || session.id,
       })
       .returning();
+
+    try {
+      const profileUpdateData = {
+        name: finalShippingInfo.fullName || undefined,
+        phone: finalShippingInfo.phone || undefined,
+        address: finalShippingInfo.address || undefined,
+        city: finalShippingInfo.city || undefined,
+        state: finalShippingInfo.state || undefined,
+        zipCode: finalShippingInfo.zipCode || undefined,
+        country: finalShippingInfo.country || undefined,
+      };
+
+      const hasUpdates = Object.values(profileUpdateData).some(Boolean);
+      if (hasUpdates) {
+        await db
+          .update(users)
+          .set({
+            ...profileUpdateData,
+            updatedAt: new Date(),
+          })
+          .where(eq(users.id, userId));
+      }
+    } catch (profileUpdateError) {
+      console.error(
+        "Profile update from Stripe shipping failed:",
+        profileUpdateError,
+      );
+    }
+
+    try {
+      const emailTarget =
+        finalShippingInfo.email ||
+        session.customer_details?.email ||
+        req.user?.email;
+
+      if (emailTarget) {
+        void sendOrderConfirmation(emailTarget, {
+          orderNumber: order.orderNumber,
+          totalAmount: order.totalAmount,
+          items: normalizedItems,
+        }).catch((emailError) => {
+          console.error("Order confirmation email failed:", emailError);
+        });
+      }
+    } catch (emailError) {
+      console.error("Order confirmation email failed:", emailError);
+    }
 
     try {
       await db.delete(carts).where(eq(carts.userId, userId));
@@ -337,6 +676,20 @@ router.post("/", authMiddleware, async (req, res) => {
         paymentIntentId,
       })
       .returning();
+
+    try {
+      if (req.user?.email) {
+        void sendOrderConfirmation(req.user.email, {
+          orderNumber: order.orderNumber,
+          totalAmount: order.totalAmount,
+          items,
+        }).catch((emailError) => {
+          console.error("Order confirmation email failed:", emailError);
+        });
+      }
+    } catch (emailError) {
+      console.error("Order confirmation email failed:", emailError);
+    }
 
     // Add calculated fields for frontend display
     const orderWithDetails = {
@@ -498,7 +851,7 @@ router.patch(
   async (req, res) => {
     try {
       const { id } = req.params;
-      const { status } = req.body;
+      const { status, trackingNumber, estimatedDelivery } = req.body;
 
       const validStatuses = [
         "pending",
@@ -514,20 +867,62 @@ router.patch(
         });
       }
 
+      const [existingOrder] = await db
+        .select()
+        .from(orders)
+        .where(eq(orders.id, id))
+        .limit(1);
+
+      if (!existingOrder) {
+        return res.status(404).json({
+          success: false,
+          message: "Order not found",
+        });
+      }
+
+      const nextShippingAddress = {
+        ...(existingOrder.shippingAddress || {}),
+      };
+
+      if (trackingNumber !== undefined) {
+        nextShippingAddress.trackingNumber =
+          String(trackingNumber || "").trim() || null;
+      }
+
+      if (estimatedDelivery !== undefined) {
+        nextShippingAddress.estimatedDelivery =
+          String(estimatedDelivery || "").trim() || null;
+      }
+
       const [updatedOrder] = await db
         .update(orders)
         .set({
           status,
+          shippingAddress: nextShippingAddress,
           updatedAt: new Date(),
         })
         .where(eq(orders.id, id))
         .returning();
 
-      if (!updatedOrder) {
-        return res.status(404).json({
-          success: false,
-          message: "Order not found",
-        });
+      try {
+        const [orderOwner] = await db
+          .select({ email: users.email })
+          .from(users)
+          .where(eq(users.id, updatedOrder.userId))
+          .limit(1);
+
+        if (orderOwner?.email) {
+          void sendOrderStatusUpdate(orderOwner.email, {
+            orderNumber: updatedOrder.orderNumber,
+            status: updatedOrder.status,
+            trackingNumber: updatedOrder.shippingAddress?.trackingNumber,
+            estimatedDelivery: updatedOrder.shippingAddress?.estimatedDelivery,
+          }).catch((emailError) => {
+            console.error("Order status update email failed:", emailError);
+          });
+        }
+      } catch (emailError) {
+        console.error("Order status update email failed:", emailError);
       }
 
       res.json({
@@ -585,6 +980,21 @@ router.post("/:id/cancel", authMiddleware, async (req, res) => {
       })
       .where(eq(orders.id, id))
       .returning();
+
+    try {
+      if (req.user?.email) {
+        void sendOrderStatusUpdate(req.user.email, {
+          orderNumber: updatedOrder.orderNumber,
+          status: updatedOrder.status,
+          trackingNumber: updatedOrder.shippingAddress?.trackingNumber,
+          estimatedDelivery: updatedOrder.shippingAddress?.estimatedDelivery,
+        }).catch((emailError) => {
+          console.error("Order cancellation email failed:", emailError);
+        });
+      }
+    } catch (emailError) {
+      console.error("Order cancellation email failed:", emailError);
+    }
 
     // Optionally refund via Stripe
     if (order.paymentIntentId) {

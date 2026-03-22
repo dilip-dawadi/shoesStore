@@ -203,7 +203,12 @@ router.post("/forgot-password", async (req, res) => {
       })
       .where(eq(users.id, user.id));
 
-    await sendPasswordResetEmail(email, resetToken);
+    try {
+      await sendPasswordResetEmail(email, resetToken);
+    } catch (emailError) {
+      console.error("Forgot password email send failed:", emailError);
+      // Do not leak delivery failures to clients. Keep the generic response.
+    }
 
     res.json({ message: "If the email exists, a reset link has been sent" });
   } catch (error) {

@@ -79,6 +79,11 @@ variable "smtp_port" {
   default = "587"
 }
 
+variable "smtp_secure" {
+  type    = string
+  default = "false"
+}
+
 variable "smtp_from" {
   type    = string
   default = "noreply@shoesstore.com"

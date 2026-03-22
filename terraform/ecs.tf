@@ -67,6 +67,7 @@ resource "aws_ecs_task_definition" "app" {
         { name = "AWS_S3_BUCKET", value = var.aws_s3_bucket },
         { name = "SMTP_HOST",     value = var.smtp_host },
         { name = "SMTP_PORT",     value = var.smtp_port },
+        { name = "SMTP_SECURE",   value = var.smtp_secure },
         { name = "SMTP_FROM",     value = var.smtp_from },
         { name = "USE_AWS_SNS",   value = var.use_aws_sns },
         { name = "FRONTEND_URL",   value = var.frontend_url },

@@ -168,26 +168,39 @@ const Orders = () => {
                         key={idx}
                         className="flex items-center space-x-4 pb-4 border-b border-border last:border-0"
                       >
-                        <img
-                          src={item.product?.images?.[0] || "/placeholder.jpg"}
-                          alt={item.product?.name}
-                          className="w-20 h-20 object-cover rounded-lg"
-                        />
-                        <div className="flex-1">
-                          <h4 className="text-sm font-semibold text-foreground">
-                            {item.product?.name}
-                          </h4>
-                          <p className="text-xs text-muted-foreground">
-                            Quantity: {item.quantity}
-                          </p>
-                        </div>
-                        <span className="text-sm font-bold text-foreground">
-                          $
-                          {(
-                            (Number(item.price) || 0) *
-                            (Number(item.quantity) || 0)
-                          ).toFixed(2)}
-                        </span>
+                        {(() => {
+                          const itemImage =
+                            item.image ||
+                            item.product?.images?.[0] ||
+                            "/placeholder.jpg";
+                          const itemName =
+                            item.name || item.product?.name || "Product";
+
+                          return (
+                            <>
+                              <img
+                                src={itemImage}
+                                alt={itemName}
+                                className="w-20 h-20 object-cover rounded-lg"
+                              />
+                              <div className="flex-1">
+                                <h4 className="text-sm font-semibold text-foreground">
+                                  {itemName}
+                                </h4>
+                                <p className="text-xs text-muted-foreground">
+                                  Quantity: {item.quantity}
+                                </p>
+                              </div>
+                              <span className="text-sm font-bold text-foreground">
+                                $
+                                {(
+                                  (Number(item.price) || 0) *
+                                  (Number(item.quantity) || 0)
+                                ).toFixed(2)}
+                              </span>
+                            </>
+                          );
+                        })()}
                       </div>
                     ))}
                   </div>

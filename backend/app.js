@@ -164,7 +164,18 @@ if (process.env.NODE_ENV !== "production") {
   app.use(morgan("dev"));
 }
 
-// Serve React frontend static build
+// Serve hashed frontend assets directly; missing asset files should 404 instead
+// of falling through to index.html (prevents MIME type errors in the browser).
+app.use(
+  "/assets",
+  express.static(join(__dirname, "public", "assets"), {
+    maxAge: "1y",
+    immutable: true,
+    fallthrough: false,
+  }),
+);
+
+// Serve remaining static files (favicon, manifest, etc.)
 app.use(express.static(join(__dirname, "public")));
 
 // Health check
@@ -195,6 +206,12 @@ app.use((req, res) => {
   if (req.path.startsWith("/api/")) {
     return res.status(404).json({ message: "Route not found" });
   }
+
+  // Do not serve SPA HTML for unknown static files.
+  if (/\.[a-zA-Z0-9]+$/.test(req.path) || req.path.startsWith("/assets/")) {
+    return res.status(404).end();
+  }
+
   res.sendFile(join(__dirname, "public", "index.html"));
 });
 
