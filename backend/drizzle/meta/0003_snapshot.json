@@ -423,6 +423,30 @@
           "primaryKey": false,
           "notNull": false
         },
+        "city": {
+          "name": "city",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "state": {
+          "name": "state",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "zip_code": {
+          "name": "zip_code",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "country": {
+          "name": "country",
+          "type": "varchar(2)",
+          "primaryKey": false,
+          "notNull": false
+        },
         "role": {
           "name": "role",
           "type": "varchar(50)",
@@ -559,8 +583,8 @@
     "tables": {},
     "columns": {}
   },
-  "id": "2a7361d2-c0b4-460c-85a4-0e48c435aff0",
-  "prevId": "1bb66e55-c035-4625-83a0-587f6878f6d2",
+  "id": "a6b85af9-8499-42f2-b87b-a27061ddc420",
+  "prevId": "2a7361d2-c0b4-460c-85a4-0e48c435aff0",
   "sequences": {},
   "policies": {},
   "views": {},

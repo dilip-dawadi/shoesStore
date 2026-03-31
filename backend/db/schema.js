@@ -7,7 +7,9 @@ import {
   integer,
   timestamp,
   boolean,
+  json,
   jsonb,
+  index,
 } from "drizzle-orm/pg-core";
 
 // Users table
@@ -52,55 +54,115 @@ export const products = pgTable("products", {
 });
 
 // Cart table
-export const carts = pgTable("carts", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id, {
-    onDelete: "cascade",
+export const carts = pgTable(
+  "carts",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id").references(() => users.id, {
+      onDelete: "cascade",
+    }),
+    productId: integer("product_id").references(() => products.id, {
+      onDelete: "cascade",
+    }),
+    quantity: integer("quantity").default(1),
+    size: varchar("size", { length: 10 }),
+    color: varchar("color", { length: 50 }),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => ({
+    userIdIdx: index("carts_user_id_idx").on(table.userId),
+    productIdIdx: index("carts_product_id_idx").on(table.productId),
+    userProductIdx: index("carts_user_product_idx").on(
+      table.userId,
+      table.productId,
+    ),
   }),
-  productId: integer("product_id").references(() => products.id, {
-    onDelete: "cascade",
-  }),
-  quantity: integer("quantity").default(1),
-  size: varchar("size", { length: 10 }),
-  color: varchar("color", { length: 50 }),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
+);
 
 // Wishlist table
-export const wishlists = pgTable("wishlists", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id, {
-    onDelete: "cascade",
+export const wishlists = pgTable(
+  "wishlists",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id").references(() => users.id, {
+      onDelete: "cascade",
+    }),
+    productId: integer("product_id").references(() => products.id, {
+      onDelete: "cascade",
+    }),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => ({
+    userIdIdx: index("wishlists_user_id_idx").on(table.userId),
+    productIdIdx: index("wishlists_product_id_idx").on(table.productId),
+    userProductIdx: index("wishlists_user_product_idx").on(
+      table.userId,
+      table.productId,
+    ),
   }),
-  productId: integer("product_id").references(() => products.id, {
-    onDelete: "cascade",
-  }),
-  createdAt: timestamp("created_at").defaultNow(),
-});
+);
 
 // Orders table
-export const orders = pgTable("orders", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id),
-  orderNumber: varchar("order_number", { length: 100 }).unique(),
-  items: jsonb("items"),
-  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }),
-  status: varchar("status", { length: 50 }).default("pending"),
-  paymentIntentId: text("payment_intent_id"),
-  shippingAddress: jsonb("shipping_address"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
+export const orders = pgTable(
+  "orders",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id").references(() => users.id),
+    orderNumber: varchar("order_number", { length: 100 }).unique(),
+    items: jsonb("items"),
+    totalAmount: decimal("total_amount", { precision: 10, scale: 2 }),
+    status: varchar("status", { length: 50 }).default("pending"),
+    paymentIntentId: text("payment_intent_id"),
+    shippingAddress: jsonb("shipping_address"),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => ({
+    userIdIdx: index("orders_user_id_idx").on(table.userId),
+    userCreatedAtIdx: index("orders_user_created_at_idx").on(
+      table.userId,
+      table.createdAt,
+    ),
+    statusIdx: index("orders_status_idx").on(table.status),
+  }),
+);
 
 // Reviews table
-export const reviews = pgTable("reviews", {
-  id: serial("id").primaryKey(),
-  productId: integer("product_id").references(() => products.id, {
-    onDelete: "cascade",
+export const reviews = pgTable(
+  "reviews",
+  {
+    id: serial("id").primaryKey(),
+    productId: integer("product_id").references(() => products.id, {
+      onDelete: "cascade",
+    }),
+    userId: integer("user_id").references(() => users.id),
+    rating: integer("rating").notNull(),
+    comment: text("comment"),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => ({
+    productIdIdx: index("reviews_product_id_idx").on(table.productId),
+    productCreatedAtIdx: index("reviews_product_created_at_idx").on(
+      table.productId,
+      table.createdAt,
+    ),
+    productUserIdx: index("reviews_product_user_idx").on(
+      table.productId,
+      table.userId,
+    ),
   }),
-  userId: integer("user_id").references(() => users.id),
-  rating: integer("rating").notNull(),
-  comment: text("comment"),
-  createdAt: timestamp("created_at").defaultNow(),
-});
+);
+
+// Session table (used by connect-pg-simple)
+export const userSessions = pgTable(
+  "user_sessions",
+  {
+    sid: varchar("sid").notNull().primaryKey(),
+    sess: json("sess").notNull(),
+    expire: timestamp("expire", { precision: 6 }).notNull(),
+  },
+  (table) => ({
+    expireIdx: index("IDX_user_sessions_expire").on(table.expire),
+  }),
+);

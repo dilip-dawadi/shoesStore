@@ -9,6 +9,7 @@ import connectPgSimple from "connect-pg-simple";
 import pg from "pg";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
+import PostgresRateLimitStore from "./middleware/postgresRateLimitStore.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -30,6 +31,11 @@ dotenv.config();
 
 const app = express();
 
+const parsePositiveInt = (value, fallback) => {
+  const parsed = Number.parseInt(String(value ?? ""), 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
+
 // Trust the ALB/proxy's X-Forwarded-For header (required for rate limiting and
 // accurate client IPs behind AWS ALB / any reverse proxy)
 app.set("trust proxy", 1);
@@ -41,8 +47,21 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 // PostgreSQL session store setup
 const PgSession = connectPgSimple(session);
 const isRDS = (process.env.DATABASE_URL || "").includes(".rds.amazonaws.com");
+const sessionDbPoolMax = parsePositiveInt(process.env.SESSION_DB_POOL_MAX, 4);
+const sessionDbIdleTimeoutMs = parsePositiveInt(
+  process.env.SESSION_DB_POOL_IDLE_TIMEOUT_MS,
+  30_000,
+);
+const sessionDbConnectTimeoutMs = parsePositiveInt(
+  process.env.SESSION_DB_POOL_CONNECT_TIMEOUT_MS,
+  5_000,
+);
+
 const pgPool = new pg.Pool({
   connectionString: process.env.DATABASE_URL,
+  max: sessionDbPoolMax,
+  idleTimeoutMillis: sessionDbIdleTimeoutMs,
+  connectionTimeoutMillis: sessionDbConnectTimeoutMs,
   // Rely on the system CA bundle (ca-certificates in Alpine) to verify RDS cert
   ...(isRDS && { ssl: { rejectUnauthorized: true } }),
 });
@@ -143,10 +162,28 @@ if (process.env.NODE_ENV !== "production") {
   app.options("*", cors(corsOptions));
 }
 
-// Rate limiting - more generous for development
+const rateLimitWindowMs = parsePositiveInt(
+  process.env.RATE_LIMIT_WINDOW_MS,
+  15 * 60 * 1000,
+);
+const rateLimitMax = parsePositiveInt(process.env.RATE_LIMIT_MAX, 500);
+const rateLimitCleanupIntervalMs = parsePositiveInt(
+  process.env.RATE_LIMIT_CLEANUP_INTERVAL_MS,
+  10 * 60 * 1000,
+);
+const rateLimitStore = new PostgresRateLimitStore({
+  pool: pgPool,
+  tableName: process.env.RATE_LIMIT_TABLE || "rate_limit_hits",
+  cleanupIntervalMs: rateLimitCleanupIntervalMs,
+});
+
+// Rate limiting shared across all app instances
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 500, // increased from 100 to 1000
+  windowMs: rateLimitWindowMs,
+  max: rateLimitMax,
+  store: rateLimitStore,
+  standardHeaders: true,
+  legacyHeaders: false,
   skip: (req) => req.method === "OPTIONS", // skip rate limiting for preflight
   message: "Too many requests from this IP, please try again later",
 });
@@ -235,5 +272,12 @@ async function startServer() {
 }
 
 startServer();
+
+const shutdown = () => {
+  rateLimitStore.shutdown();
+};
+
+process.on("SIGINT", shutdown);
+process.on("SIGTERM", shutdown);
 
 export default app;
