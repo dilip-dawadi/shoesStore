@@ -18,12 +18,13 @@ Everything you need to operate, deploy, and maintain this app in production.
 10. [Add HTTPS to the ALB](#10-add-https-to-the-alb)
 11. [Security Group Rules Reference](#11-security-group-rules-reference)
 12. [AWS Resource Reference](#12-aws-resource-reference)
+13. [Deploy With GitHub Actions](#13-deploy-with-github-actions)
 
 ---
 
 ## 1. Architecture Overview
 
-```
+```text
 Browser
   │
   ▼
@@ -310,7 +311,7 @@ cd terraform && terraform apply
 
 **Current strict security chain:**
 
-```
+```text
 Internet → ALB SG (sg-0717e0cc5165e4164)
          port 80 open to 0.0.0.0/0
 
@@ -360,3 +361,45 @@ aws ec2 describe-security-groups \
 | CloudWatch Logs | `/ecs/shoe-store`                                         |
 | SSM Prefix      | `/shoe-store/`                                            |
 | Terraform State | `terraform/terraform.tfstate` (local)                     |
+
+---
+
+## 13. Deploy With GitHub Actions
+
+This repo now includes a workflow that mirrors the manual deploy steps in section 2:
+
+- Authenticate with ECR
+- Build and push `linux/amd64` image to `:latest`
+- Force ECS new deployment
+- Wait until service is stable
+
+Workflow file:
+
+- `.github/workflows/deploy-ecs.yml`
+
+Required GitHub repository secrets:
+
+- `AWS_ACCESS_KEY_ID`
+- `AWS_SECRET_ACCESS_KEY`
+
+Trigger options:
+
+- Automatic on push to `main` when app files change
+- Manual trigger from GitHub Actions (`workflow_dispatch`)
+
+How to run manually:
+
+1. Open GitHub repository -> Actions.
+2. Select **Deploy To ECS**.
+3. Click **Run workflow**.
+
+What to check after run:
+
+```bash
+aws ecs describe-services \
+  --cluster shoe-store \
+  --services shoe-store \
+  --region us-east-1 \
+  --query "services[0].{status:status,running:runningCount,desired:desiredCount,primary:deployments[?status=='PRIMARY']|[0].rolloutState}" \
+  --output json
+```
