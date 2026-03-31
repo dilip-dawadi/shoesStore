@@ -203,3 +203,53 @@ variable "autoscaling_scale_out_cooldown" {
   type        = number
   default     = 60
 }
+
+# ── CloudWatch Alarms ────────────────────────────────────────────────────────
+
+variable "cloudwatch_alarm_actions" {
+  description = "List of ARNs to notify when alarms change state (for example, SNS topics)"
+  type        = list(string)
+  default     = []
+}
+
+variable "alarm_notification_email" {
+  description = "Email address to subscribe to the default alarms SNS topic"
+  type        = string
+  default     = "info@dilipdawadi.com.np"
+}
+
+variable "alb_5xx_alarm_threshold" {
+  description = "ALB target 5xx count threshold"
+  type        = number
+  default     = 5
+}
+
+variable "alb_p95_latency_alarm_threshold" {
+  description = "ALB p95 TargetResponseTime threshold in seconds"
+  type        = number
+  default     = 1.5
+}
+
+variable "ecs_cpu_alarm_threshold" {
+  description = "ECS CPU utilization alarm threshold percent"
+  type        = number
+  default     = 85
+}
+
+variable "ecs_memory_alarm_threshold" {
+  description = "ECS memory utilization alarm threshold percent"
+  type        = number
+  default     = 85
+}
+
+variable "rds_db_instance_identifier" {
+  description = "RDS DB instance identifier for DatabaseConnections alarm. Leave empty to skip this alarm."
+  type        = string
+  default     = ""
+}
+
+variable "rds_db_connections_alarm_threshold" {
+  description = "RDS DatabaseConnections alarm threshold"
+  type        = number
+  default     = 80
+}

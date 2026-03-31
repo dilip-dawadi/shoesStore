@@ -32,3 +32,8 @@ output "waf_log_group" {
   description = "CloudWatch log group for WAF request logs"
   value       = aws_cloudwatch_log_group.waf.name
 }
+
+output "alarms_sns_topic_arn" {
+  description = "SNS topic ARN receiving CloudWatch alarm notifications"
+  value       = aws_sns_topic.alarms.arn
+}
