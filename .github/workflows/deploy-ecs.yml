@@ -51,6 +51,13 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
+      - name: Validate backend lockfile exists
+        run: |
+          if [ ! -f backend/package-lock.json ]; then
+            echo "backend/package-lock.json is missing. Commit lockfile so Docker npm ci can run."
+            exit 1
+          fi
+
       - name: Build and push latest image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
