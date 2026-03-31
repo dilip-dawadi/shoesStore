@@ -37,3 +37,18 @@ output "alarms_sns_topic_arn" {
   description = "SNS topic ARN receiving CloudWatch alarm notifications"
   value       = aws_sns_topic.alarms.arn
 }
+
+output "operations_dashboard_name" {
+  description = "CloudWatch operations dashboard name"
+  value       = aws_cloudwatch_dashboard.operations.dashboard_name
+}
+
+output "synthetics_canary_name" {
+  description = "CloudWatch synthetics canary name"
+  value       = aws_synthetics_canary.health.name
+}
+
+output "synthetics_healthcheck_url" {
+  description = "URL checked by the synthetics canary"
+  value       = local.synthetics_healthcheck_url
+}

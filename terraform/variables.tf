@@ -253,3 +253,41 @@ variable "rds_db_connections_alarm_threshold" {
   type        = number
   default     = 80
 }
+
+# ── Operations Dashboard & Synthetics Canary ────────────────────────────────
+
+variable "operations_dashboard_name" {
+  description = "Optional CloudWatch dashboard name. Leave empty to use app_name-operations."
+  type        = string
+  default     = ""
+}
+
+variable "synthetics_canary_runtime_version" {
+  description = "CloudWatch Synthetics runtime version"
+  type        = string
+  default     = "syn-nodejs-puppeteer-15.0"
+}
+
+variable "synthetics_canary_schedule_expression" {
+  description = "Synthetics canary schedule expression"
+  type        = string
+  default     = "rate(1 minute)"
+}
+
+variable "synthetics_canary_timeout_seconds" {
+  description = "Synthetics canary timeout"
+  type        = number
+  default     = 30
+}
+
+variable "synthetics_healthcheck_url" {
+  description = "Full URL checked by the synthetics canary. Leave empty to use ALB /health endpoint."
+  type        = string
+  default     = ""
+}
+
+variable "synthetics_success_percent_alarm_threshold" {
+  description = "Synthetics SuccessPercent low-threshold alarm value"
+  type        = number
+  default     = 100
+}
