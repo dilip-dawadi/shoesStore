@@ -8,16 +8,11 @@ locals {
     "/",
   )
 
-  operations_dashboard_alarm_arns = concat(
-    [
-      aws_cloudwatch_metric_alarm.alb_target_5xx.arn,
-      aws_cloudwatch_metric_alarm.alb_p95_latency.arn,
-      aws_cloudwatch_metric_alarm.ecs_cpu_high.arn,
-      aws_cloudwatch_metric_alarm.ecs_memory_high.arn,
-      aws_cloudwatch_metric_alarm.synthetics_success_percent_low.arn,
-    ],
-    aws_cloudwatch_metric_alarm.rds_connections_high[*].arn,
-  )
+  operations_dashboard_alarm_arns = [
+    aws_cloudwatch_metric_alarm.alb_target_5xx.arn,
+    aws_cloudwatch_metric_alarm.ecs_cpu_high.arn,
+    aws_cloudwatch_metric_alarm.ecs_memory_high.arn,
+  ]
 }
 
 data "archive_file" "synthetics_canary" {
@@ -69,6 +64,23 @@ resource "aws_s3_bucket_public_access_block" "synthetics_artifacts" {
   block_public_policy     = true
   ignore_public_acls      = true
   restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "synthetics_artifacts" {
+  bucket = aws_s3_bucket.synthetics_artifacts.id
+
+  rule {
+    id     = "expire-canary-artifacts"
+    status = "Enabled"
+
+    filter {
+      prefix = "canary/"
+    }
+
+    expiration {
+      days = var.synthetics_artifact_expiration_days
+    }
+  }
 }
 
 data "aws_iam_policy_document" "synthetics_assume_role" {
@@ -154,133 +166,60 @@ resource "aws_synthetics_canary" "health" {
     }
   }
 
-  success_retention_period = 31
-  failure_retention_period = 31
+  success_retention_period = var.synthetics_success_retention_days
+  failure_retention_period = var.synthetics_failure_retention_days
 
   depends_on = [aws_iam_role_policy.synthetics_execution]
-}
-
-resource "aws_cloudwatch_metric_alarm" "synthetics_success_percent_low" {
-  alarm_name          = "${var.app_name}-synthetics-success-low"
-  alarm_description   = "Synthetics canary success percent dropped below threshold"
-  namespace           = "CloudWatchSynthetics"
-  metric_name         = "SuccessPercent"
-  statistic           = "Average"
-  period              = 60
-  evaluation_periods  = 3
-  datapoints_to_alarm = 2
-  threshold           = var.synthetics_success_percent_alarm_threshold
-  comparison_operator = "LessThanThreshold"
-  treat_missing_data  = "breaching"
-
-  dimensions = {
-    CanaryName = aws_synthetics_canary.health.name
-  }
-
-  alarm_actions = local.alarm_actions_effective
-  ok_actions    = local.alarm_actions_effective
 }
 
 resource "aws_cloudwatch_dashboard" "operations" {
   dashboard_name = local.operations_dashboard_name_effective
 
   dashboard_body = jsonencode({
-    widgets = concat(
-      [
-        {
-          type   = "alarm"
-          x      = 0
-          y      = 0
-          width  = 24
-          height = 6
-          properties = {
-            title  = "${var.app_name} Alarm Status"
-            alarms = local.operations_dashboard_alarm_arns
-          }
-        },
-        {
-          type   = "metric"
-          x      = 0
-          y      = 6
-          width  = 12
-          height = 6
-          properties = {
-            title   = "ALB Target 5XX"
-            region  = var.aws_region
-            stat    = "Sum"
-            period  = 60
-            view    = "timeSeries"
-            metrics = [["AWS/ApplicationELB", "HTTPCode_Target_5XX_Count", "LoadBalancer", local.load_balancer_dimension, "TargetGroup", local.target_group_dimension]]
-          }
-        },
-        {
-          type   = "metric"
-          x      = 12
-          y      = 6
-          width  = 12
-          height = 6
-          properties = {
-            title   = "ALB p95 Latency"
-            region  = var.aws_region
-            stat    = "p95"
-            period  = 60
-            view    = "timeSeries"
-            metrics = [["AWS/ApplicationELB", "TargetResponseTime", "LoadBalancer", local.load_balancer_dimension, "TargetGroup", local.target_group_dimension]]
-          }
-        },
-        {
-          type   = "metric"
-          x      = 0
-          y      = 12
-          width  = 12
-          height = 6
-          properties = {
-            title  = "ECS CPU and Memory"
-            region = var.aws_region
-            period = 60
-            view   = "timeSeries"
-            metrics = [
-              ["AWS/ECS", "CPUUtilization", "ClusterName", aws_ecs_cluster.main.name, "ServiceName", aws_ecs_service.app.name],
-              ["AWS/ECS", "MemoryUtilization", "ClusterName", aws_ecs_cluster.main.name, "ServiceName", aws_ecs_service.app.name],
-            ]
-          }
-        },
-        {
-          type   = "metric"
-          x      = 12
-          y      = 12
-          width  = 12
-          height = 6
-          properties = {
-            title  = "Synthetics SuccessPercent"
-            region = var.aws_region
-            stat   = "Average"
-            period = 60
-            view   = "timeSeries"
-            metrics = [
-              ["CloudWatchSynthetics", "SuccessPercent", "CanaryName", aws_synthetics_canary.health.name],
-              ["CloudWatchSynthetics", "Duration", "CanaryName", aws_synthetics_canary.health.name, { yAxis = "right" }],
-            ]
-          }
-        },
-      ],
-      var.rds_db_instance_identifier == "" ? [] : [
-        {
-          type   = "metric"
-          x      = 0
-          y      = 18
-          width  = 24
-          height = 6
-          properties = {
-            title   = "RDS Database Connections"
-            region  = var.aws_region
-            stat    = "Maximum"
-            period  = 60
-            view    = "timeSeries"
-            metrics = [["AWS/RDS", "DatabaseConnections", "DBInstanceIdentifier", var.rds_db_instance_identifier]]
-          }
-        },
-      ],
-    )
+    widgets = [
+      {
+        type   = "alarm"
+        x      = 0
+        y      = 0
+        width  = 24
+        height = 6
+        properties = {
+          title  = "${var.app_name} Alarm Status"
+          alarms = local.operations_dashboard_alarm_arns
+        }
+      },
+      {
+        type   = "metric"
+        x      = 0
+        y      = 6
+        width  = 12
+        height = 6
+        properties = {
+          title   = "ALB Target 5XX"
+          region  = var.aws_region
+          stat    = "Sum"
+          period  = 60
+          view    = "timeSeries"
+          metrics = [["AWS/ApplicationELB", "HTTPCode_Target_5XX_Count", "LoadBalancer", local.load_balancer_dimension, "TargetGroup", local.target_group_dimension]]
+        }
+      },
+      {
+        type   = "metric"
+        x      = 12
+        y      = 6
+        width  = 12
+        height = 6
+        properties = {
+          title  = "ECS CPU and Memory"
+          region = var.aws_region
+          period = 60
+          view   = "timeSeries"
+          metrics = [
+            ["AWS/ECS", "CPUUtilization", "ClusterName", aws_ecs_cluster.main.name, "ServiceName", aws_ecs_service.app.name],
+            ["AWS/ECS", "MemoryUtilization", "ClusterName", aws_ecs_cluster.main.name, "ServiceName", aws_ecs_service.app.name],
+          ]
+        }
+      },
+    ]
   })
 }

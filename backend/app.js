@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import helmet from "helmet";
+import compression from "compression";
 import rateLimit from "express-rate-limit";
 import morgan from "morgan";
 import session from "express-session";
@@ -30,6 +31,7 @@ import { sql } from "drizzle-orm";
 dotenv.config();
 
 const app = express();
+app.disable("x-powered-by");
 
 const parsePositiveInt = (value, fallback) => {
   const parsed = Number.parseInt(String(value ?? ""), 10);
@@ -161,6 +163,21 @@ if (process.env.NODE_ENV !== "production") {
   app.use(cors(corsOptions));
   app.options("*", cors(corsOptions));
 }
+
+// Compress API and static responses to reduce bandwidth and improve throughput
+// under load. Skip health checks to keep probe responses lightweight.
+app.use(
+  compression({
+    threshold: 1024,
+    filter: (req, res) => {
+      if (req.path === "/health") {
+        return false;
+      }
+
+      return compression.filter(req, res);
+    },
+  }),
+);
 
 const rateLimitWindowMs = parsePositiveInt(
   process.env.RATE_LIMIT_WINDOW_MS,

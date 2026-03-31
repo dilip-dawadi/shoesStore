@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMemo } from "react";
 import api from "../lib/axios";
 
 // Products API
@@ -12,11 +13,40 @@ export const productsApi = {
   delete: (id) => api.delete(`/products/${id}`),
 };
 
+const normalizeFilters = (filters = {}) => {
+  const compact = Object.entries(filters).reduce((acc, [key, value]) => {
+    if (value === undefined || value === null) {
+      return acc;
+    }
+
+    const normalizedValue = typeof value === "string" ? value.trim() : value;
+
+    if (normalizedValue === "") {
+      return acc;
+    }
+
+    acc[key] = normalizedValue;
+    return acc;
+  }, {});
+
+  // Sort keys to keep query keys stable and avoid cache misses from key order.
+  return Object.keys(compact)
+    .sort()
+    .reduce((acc, key) => {
+      acc[key] = compact[key];
+      return acc;
+    }, {});
+};
+
 // Use Products Query
 export const useProducts = (filters = {}) => {
+  const normalizedFilters = useMemo(() => normalizeFilters(filters), [filters]);
+
   return useQuery({
-    queryKey: ["products", filters],
-    queryFn: () => productsApi.getAll(filters).then((res) => res.data),
+    queryKey: ["products", normalizedFilters],
+    queryFn: () =>
+      productsApi.getAll(normalizedFilters).then((res) => res.data),
+    placeholderData: (previousData) => previousData,
   });
 };
 

@@ -271,13 +271,31 @@ variable "synthetics_canary_runtime_version" {
 variable "synthetics_canary_schedule_expression" {
   description = "Synthetics canary schedule expression"
   type        = string
-  default     = "rate(1 minute)"
+  default     = "cron(0 0 * * ? *)"
 }
 
 variable "synthetics_canary_timeout_seconds" {
   description = "Synthetics canary timeout"
   type        = number
   default     = 30
+}
+
+variable "synthetics_artifact_expiration_days" {
+  description = "Number of days to keep canary artifacts in S3"
+  type        = number
+  default     = 1
+}
+
+variable "synthetics_success_retention_days" {
+  description = "Number of days to retain successful canary runs"
+  type        = number
+  default     = 1
+}
+
+variable "synthetics_failure_retention_days" {
+  description = "Number of days to retain failed canary runs"
+  type        = number
+  default     = 1
 }
 
 variable "synthetics_healthcheck_url" {

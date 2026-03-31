@@ -41,6 +41,19 @@ const PRICE_RANGES = {
   luxury: { min: 200, max: 999999 },
 };
 
+const setPublicCache =
+  (maxAgeSeconds = 60) =>
+  (req, res, next) => {
+    const maxAge = Math.max(0, Number(maxAgeSeconds) || 0);
+    const staleWhileRevalidate = maxAge * 2;
+
+    res.set(
+      "Cache-Control",
+      `public, max-age=${maxAge}, stale-while-revalidate=${staleWhileRevalidate}`,
+    );
+    next();
+  };
+
 const normalizeOrderItems = (items) => {
   if (!Array.isArray(items)) {
     return [];
@@ -214,7 +227,7 @@ const buildOrderBy = (sortField, sortOrder) => {
  * @desc    Get all products with advanced filtering, sorting, and pagination
  * @access  Public
  */
-router.get("/", async (req, res) => {
+router.get("/", setPublicCache(30), async (req, res) => {
   try {
     const {
       // Pagination
@@ -339,7 +352,7 @@ router.get("/", async (req, res) => {
  * @desc    Get featured products
  * @access  Public
  */
-router.get("/featured", async (req, res) => {
+router.get("/featured", setPublicCache(60), async (req, res) => {
   try {
     const { limit = 10 } = req.query;
     const sanitizedLimit = Math.min(50, parseInt(limit) || 10);
@@ -370,7 +383,7 @@ router.get("/featured", async (req, res) => {
  * @desc    Advanced search with multiple fields
  * @access  Public
  */
-router.get("/search", async (req, res) => {
+router.get("/search", setPublicCache(30), async (req, res) => {
   try {
     const { q, page = 1, limit = 20 } = req.query;
 
@@ -424,7 +437,7 @@ router.get("/search", async (req, res) => {
  * @desc    Get product statistics
  * @access  Public
  */
-router.get("/stats", async (req, res) => {
+router.get("/stats", setPublicCache(120), async (req, res) => {
   try {
     const stats = await db
       .select({
@@ -480,7 +493,7 @@ router.get("/stats", async (req, res) => {
  * @desc    Get single product by ID
  * @access  Public
  */
-router.get("/:id", async (req, res) => {
+router.get("/:id", setPublicCache(60), async (req, res) => {
   try {
     const productId = parseInt(req.params.id);
 
@@ -572,7 +585,7 @@ router.get("/:id", async (req, res) => {
  * @desc    Get reviews for a product
  * @access  Public
  */
-router.get("/:id/reviews", async (req, res) => {
+router.get("/:id/reviews", setPublicCache(30), async (req, res) => {
   try {
     const productId = parseInt(req.params.id);
 

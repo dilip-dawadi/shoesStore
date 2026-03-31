@@ -41,6 +41,15 @@ function Products() {
     maxPrice: "",
     search: "",
   });
+  const [debouncedFilters, setDebouncedFilters] = useState(filters);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setDebouncedFilters(filters);
+    }, 250);
+
+    return () => clearTimeout(timeoutId);
+  }, [filters]);
 
   useEffect(() => {
     const categoryFromUrl = searchParams.get("category");
@@ -67,7 +76,7 @@ function Products() {
     });
   }, [searchParams]);
 
-  const { data, isLoading, error } = useProducts(filters);
+  const { data, isLoading, error } = useProducts(debouncedFilters);
   const { mutate: addToCart } = useAddToCart();
   const { data: wishlistData } = useWishlist();
   const { mutate: addToWishlist } = useAddToWishlist();
