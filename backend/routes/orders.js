@@ -789,14 +789,38 @@ router.get("/all", authMiddleware, async (req, res) => {
     }
 
     const allOrders = await db
-      .select()
+      .select({
+        id: orders.id,
+        userId: orders.userId,
+        orderNumber: orders.orderNumber,
+        items: orders.items,
+        totalAmount: orders.totalAmount,
+        status: orders.status,
+        paymentIntentId: orders.paymentIntentId,
+        shippingAddress: orders.shippingAddress,
+        createdAt: orders.createdAt,
+        updatedAt: orders.updatedAt,
+        userName: users.name,
+        userEmail: users.email,
+      })
       .from(orders)
+      .leftJoin(users, eq(orders.userId, users.id))
       .orderBy(desc(orders.createdAt));
+
+    const ordersWithCustomerInfo = allOrders.map((order) => {
+      const shipping = order.shippingAddress || {};
+
+      return {
+        ...order,
+        userName: order.userName || shipping.fullName || shipping.name || null,
+        userEmail: order.userEmail || shipping.email || null,
+      };
+    });
 
     res.json({
       success: true,
-      orders: allOrders,
-      count: allOrders.length,
+      orders: ordersWithCustomerInfo,
+      count: ordersWithCustomerInfo.length,
     });
   } catch (error) {
     console.error("Get all orders error:", error);

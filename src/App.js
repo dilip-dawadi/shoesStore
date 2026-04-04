@@ -46,8 +46,11 @@ const AppContent = () => {
   const retryTimerRef = useRef(null);
   const retryDelayRef = useRef(1000);
 
-  const apiBaseUrl =
-    import.meta.env.VITE_API_URL || "http://localhost:3001/api";
+  const apiBaseUrl = import.meta.env.VITE_API_URL
+    ? import.meta.env.VITE_API_URL
+    : import.meta.env.PROD
+      ? "/api"
+      : "http://localhost:3001/api";
   const healthUrl = apiBaseUrl.replace(/\/api\/?$/, "") + "/health";
 
   const sendApiStatus = (online) => {

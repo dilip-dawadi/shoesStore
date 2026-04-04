@@ -129,6 +129,7 @@ router.post(
         id: user.id,
         email: user.email,
         name: user.name,
+        isVerified: user.isVerified,
         role: user.role || "user",
       };
 
@@ -145,6 +146,7 @@ router.post(
             id: user.id,
             email: user.email,
             name: user.name,
+            isVerified: user.isVerified,
             role: user.role || "user",
           },
         };
@@ -160,18 +162,53 @@ router.post(
 // Verify email
 router.post("/verify-email", async (req, res) => {
   try {
-    const { token, userId } = req.body;
+    const token = String(req.body?.token || "").trim();
+    const parsedUserId = Number.parseInt(String(req.body?.userId || ""), 10);
 
-    const [user] = await db.select().from(users).where(eq(users.id, userId));
-
-    if (!user || user.verificationToken !== token) {
+    if (!token) {
       return res.status(400).json({ message: "Invalid verification token" });
+    }
+
+    let user;
+
+    if (Number.isInteger(parsedUserId) && parsedUserId > 0) {
+      [user] = await db.select().from(users).where(eq(users.id, parsedUserId));
+    }
+
+    if (!user) {
+      [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.verificationToken, token));
+    }
+
+    if (!user) {
+      return res
+        .status(400)
+        .json({ message: "Invalid or expired verification token" });
+    }
+
+    if (user.isVerified) {
+      return res.json({ message: "Email already verified" });
+    }
+
+    if (String(user.verificationToken || "") !== token) {
+      return res
+        .status(400)
+        .json({ message: "Invalid or expired verification token" });
     }
 
     await db
       .update(users)
-      .set({ isVerified: true, verificationToken: null })
-      .where(eq(users.id, userId));
+      .set({ isVerified: true, verificationToken: null, updatedAt: new Date() })
+      .where(eq(users.id, user.id));
+
+    if (req.session?.userId === user.id && req.session?.user) {
+      req.session.user = {
+        ...req.session.user,
+        isVerified: true,
+      };
+    }
 
     res.json({ message: "Email verified successfully" });
   } catch (error) {
@@ -268,17 +305,49 @@ router.post("/logout", (req, res) => {
 });
 
 // Get current session/user
-router.get("/session", (req, res) => {
-  if (req.session && req.session.userId) {
-    res.json({
+router.get("/session", async (req, res) => {
+  try {
+    if (!req.session || !req.session.userId) {
+      return res.json({
+        isAuthenticated: false,
+        user: null,
+      });
+    }
+
+    const [freshUser] = await db
+      .select({
+        id: users.id,
+        email: users.email,
+        name: users.name,
+        isVerified: users.isVerified,
+        role: users.role,
+      })
+      .from(users)
+      .where(eq(users.id, req.session.userId));
+
+    if (!freshUser) {
+      req.session.destroy(() => {});
+      return res.json({
+        isAuthenticated: false,
+        user: null,
+      });
+    }
+
+    req.session.user = {
+      id: freshUser.id,
+      email: freshUser.email,
+      name: freshUser.name,
+      isVerified: freshUser.isVerified,
+      role: freshUser.role || "user",
+    };
+
+    return res.json({
       isAuthenticated: true,
       user: req.session.user,
     });
-  } else {
-    res.json({
-      isAuthenticated: false,
-      user: null,
-    });
+  } catch (error) {
+    console.error("Session fetch error:", error);
+    return res.status(500).json({ message: "Server error" });
   }
 });
 

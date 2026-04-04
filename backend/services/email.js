@@ -12,6 +12,12 @@ const smtpSecure =
     ? process.env.SMTP_SECURE === "true"
     : smtpPort === 465;
 
+const frontendBaseUrl = (
+  process.env.FRONTEND_URL ||
+  process.env.CLIENT_URL ||
+  "http://localhost:3000"
+).replace(/\/$/, "");
+
 // Configure nodemailer for development
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || "smtp.gmail.com",
@@ -93,7 +99,7 @@ const buildOrderItemsHtml = (items = []) => {
 };
 
 export const sendVerificationEmail = async (email, token, userId) => {
-  const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${token}&userId=${userId}`;
+  const verificationUrl = `${frontendBaseUrl}/verify-email?token=${encodeURIComponent(token)}&userId=${encodeURIComponent(String(userId))}`;
 
   const mailOptions = {
     from: process.env.SMTP_FROM || "noreply@shoesstore.com",
@@ -130,7 +136,7 @@ export const sendVerificationEmail = async (email, token, userId) => {
 };
 
 export const sendPasswordResetEmail = async (email, token) => {
-  const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
+  const resetUrl = `${frontendBaseUrl}/reset-password?token=${encodeURIComponent(token)}`;
 
   const mailOptions = {
     from: process.env.SMTP_FROM || "noreply@shoesstore.com",
@@ -166,7 +172,7 @@ export const sendPasswordResetEmail = async (email, token) => {
 };
 
 export const sendOrderConfirmation = async (email, orderDetails) => {
-  const orderUrl = `${process.env.FRONTEND_URL}/orders`;
+  const orderUrl = `${frontendBaseUrl}/orders`;
   const orderItemsHtml = buildOrderItemsHtml(orderDetails.items || []);
 
   const mailOptions = {
@@ -276,7 +282,7 @@ export const sendOrderStatusUpdate = async (email, orderDetails) => {
     title: "Order status updated",
     subtitle: "Your order status has changed.",
   };
-  const orderUrl = `${process.env.FRONTEND_URL}/orders`;
+  const orderUrl = `${frontendBaseUrl}/orders`;
 
   const mailOptions = {
     from: process.env.SMTP_FROM || "noreply@shoesstore.com",

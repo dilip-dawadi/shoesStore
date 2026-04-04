@@ -28,6 +28,14 @@
 - Terraform: repeatable infrastructure and safer change management.
 - SSM Parameter Store: secure secret/config handling for app runtime.
 
+### Why We Chose Our Own Auth Instead of Cognito
+
+- We already use server-side sessions (`express-session` + PostgreSQL store), so custom auth fit naturally with our backend architecture.
+- We needed full control over signup, email verification, password reset, and role checks without Cognito-specific flow constraints.
+- For this project scope, custom auth reduced service sprawl and integration overhead while we iterate quickly.
+- Cost model is simpler at this stage because we avoid Cognito MAU-based pricing until advanced identity features are required.
+- Trade-off: we own auth maintenance. If we later need social login, enterprise SSO, or stricter managed compliance controls, Cognito remains a clear upgrade path.
+
 ## 4. 6 Pillars (Point-wise)
 
 ### A. Operational Excellence
@@ -106,4 +114,4 @@
 
 ## 8. One-line Conclusion
 
-- We chose managed AWS services that balance simplicity and production readiness, then aligned each decision with the 6 pillars to make the system scalable, secure, observable, and cost-aware.
+- We built on AWS (ECS Fargate, ALB, RDS, WAF, CloudWatch, SNS, SSM), kept authentication custom for product-level flexibility, and aligned every choice with the 6 pillars to keep the system scalable, secure, observable, and cost-aware.

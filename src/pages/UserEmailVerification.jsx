@@ -14,19 +14,22 @@ const UserVerification = () => {
   const { mutate: verifyEmail, isPending } = useVerifyEmail();
 
   const verify = () => {
+    if (isPending) {
+      return;
+    }
+
     if (!token || !userId) {
       setMessage("Invalid verification link. Please register again.");
       return;
     }
     verifyEmail(
-      { token, userId: parseInt(userId) },
+      { token, userId: parseInt(userId, 10) },
       {
-        onSuccess: async () => {
-          setMessage("Email verified successfully!");
-          // Force a fresh session fetch so the auth context picks up
-          // isVerified: true before we navigate to the dashboard
+        onSuccess: async (response) => {
+          setMessage(response?.data?.message || "Email verified successfully!");
+          // Refresh auth cache before redirecting the user to login.
           await refreshSession();
-          setTimeout(() => navigate("/dashboard"), 1500);
+          setTimeout(() => navigate("/login"), 1500);
         },
         onError: (error) => {
           setMessage(error.response?.data?.message || "Verification failed");
@@ -62,12 +65,11 @@ const UserVerification = () => {
                     duration-300
                 "
           onClick={verify}
+          disabled={isPending}
         >
-          Verify
+          {isPending ? "Verifying..." : "Verify"}
         </button>
-        <p className="mt-2 text-sm text-gray-500">
-          {message.includes("//") ? message.split("//")[1] : message}
-        </p>
+        <p className="mt-2 text-sm text-gray-500">{message}</p>
       </div>
     </div>
   );
