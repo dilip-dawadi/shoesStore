@@ -37,6 +37,34 @@ const Profile = () => {
     },
   });
 
+  const { data: ordersResponse } = useQuery({
+    queryKey: ["orders"],
+    queryFn: async () => {
+      const response = await api.get("/orders");
+      return response.data;
+    },
+  });
+
+  const { data: wishlistResponse } = useQuery({
+    queryKey: ["wishlist"],
+    queryFn: async () => {
+      const response = await api.get("/wishlist");
+      return response.data;
+    },
+  });
+
+  const orders = Array.isArray(ordersResponse?.data) ? ordersResponse.data : [];
+  const wishlistItems = Array.isArray(wishlistResponse?.items)
+    ? wishlistResponse.items
+    : [];
+
+  const totalOrders = orders.length;
+  const totalWishlistItems = wishlistItems.length;
+  const totalSpent = orders.reduce((sum, order) => {
+    const orderTotal = Number(order?.totalAmount ?? order?.total ?? 0);
+    return sum + (Number.isFinite(orderTotal) ? orderTotal : 0);
+  }, 0);
+
   // Update form data when user data is loaded
   React.useEffect(() => {
     if (user) {
@@ -339,19 +367,23 @@ const Profile = () => {
           <div className="bg-secondary/10 px-8 py-6 border-t border-border">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="text-center">
-                <p className="text-3xl font-bold text-primary">0</p>
+                <p className="text-3xl font-bold text-primary">{totalOrders}</p>
                 <p className="text-sm text-muted-foreground mt-1">
                   Total Orders
                 </p>
               </div>
               <div className="text-center">
-                <p className="text-3xl font-bold text-primary">0</p>
+                <p className="text-3xl font-bold text-primary">
+                  {totalWishlistItems}
+                </p>
                 <p className="text-sm text-muted-foreground mt-1">
                   Wishlist Items
                 </p>
               </div>
               <div className="text-center">
-                <p className="text-3xl font-bold text-primary">$0.00</p>
+                <p className="text-3xl font-bold text-primary">
+                  ${totalSpent.toFixed(2)}
+                </p>
                 <p className="text-sm text-muted-foreground mt-1">
                   Total Spent
                 </p>

@@ -43,6 +43,12 @@ const UserDashboard = () => {
     enabled: isAuthenticated,
   });
 
+  const cartCount = Array.isArray(cart?.items) ? cart.items.length : 0;
+  const wishlistCount = Array.isArray(wishlist?.items)
+    ? wishlist.items.length
+    : 0;
+  const ordersCount = Array.isArray(orders?.data) ? orders.data.length : 0;
+
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="mb-8">
@@ -64,7 +70,7 @@ const UserDashboard = () => {
             <ShoppingBag className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{cart?.length || 0}</div>
+            <div className="text-2xl font-bold">{cartCount}</div>
           </CardContent>
         </Card>
 
@@ -76,7 +82,7 @@ const UserDashboard = () => {
             <Heart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{wishlist?.length || 0}</div>
+            <div className="text-2xl font-bold">{wishlistCount}</div>
           </CardContent>
         </Card>
 
@@ -88,7 +94,7 @@ const UserDashboard = () => {
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{orders?.length || 0}</div>
+            <div className="text-2xl font-bold">{ordersCount}</div>
           </CardContent>
         </Card>
 
