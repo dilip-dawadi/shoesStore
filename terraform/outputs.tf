@@ -29,8 +29,8 @@ output "waf_web_acl_arn" {
 }
 
 output "waf_log_group" {
-  description = "CloudWatch log group for WAF request logs"
-  value       = aws_cloudwatch_log_group.waf.name
+  description = "CloudWatch log group for WAF request logs (empty when logging is disabled)"
+  value       = var.enable_waf_logging ? aws_cloudwatch_log_group.waf[0].name : ""
 }
 
 output "alarms_sns_topic_arn" {

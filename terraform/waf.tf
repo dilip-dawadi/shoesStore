@@ -53,7 +53,7 @@ resource "aws_wafv2_web_acl" "app" {
 
     statement {
       rate_based_statement {
-        limit              = 2000
+        limit              = var.waf_rate_limit_per_5m
         aggregate_key_type = "IP"
       }
     }
@@ -144,25 +144,29 @@ resource "aws_wafv2_web_acl" "app" {
   }
 
   # ── 6. PHP application rules ─────────────────────────────────────────────────
-  rule {
-    name     = "AWSManagedRulesPHPRuleSet"
-    priority = 60
+  dynamic "rule" {
+    for_each = var.waf_enable_php_rules ? [1] : []
 
-    override_action {
-      none {}
-    }
+    content {
+      name     = "AWSManagedRulesPHPRuleSet"
+      priority = 60
 
-    statement {
-      managed_rule_group_statement {
-        name        = "AWSManagedRulesPHPRuleSet"
-        vendor_name = "AWS"
+      override_action {
+        none {}
       }
-    }
 
-    visibility_config {
-      cloudwatch_metrics_enabled = true
-      metric_name                = "${var.app_name}-php"
-      sampled_requests_enabled   = true
+      statement {
+        managed_rule_group_statement {
+          name        = "AWSManagedRulesPHPRuleSet"
+          vendor_name = "AWS"
+        }
+      }
+
+      visibility_config {
+        cloudwatch_metrics_enabled = true
+        metric_name                = "${var.app_name}-php"
+        sampled_requests_enabled   = true
+      }
     }
   }
 
@@ -187,14 +191,18 @@ resource "aws_wafv2_web_acl_association" "alb" {
 # Log group name MUST start with "aws-waf-logs-"
 
 resource "aws_cloudwatch_log_group" "waf" {
+  count = var.enable_waf_logging ? 1 : 0
+
   name              = "aws-waf-logs-${var.app_name}"
-  retention_in_days = 90
+  retention_in_days = var.waf_log_retention_days
 
   tags = { Name = "${var.app_name}-waf-logs" }
 }
 
 resource "aws_wafv2_web_acl_logging_configuration" "app" {
-  log_destination_configs = [aws_cloudwatch_log_group.waf.arn]
+  count = var.enable_waf_logging ? 1 : 0
+
+  log_destination_configs = [aws_cloudwatch_log_group.waf[0].arn]
   resource_arn            = aws_wafv2_web_acl.app.arn
 
   # Redact sensitive headers before storing logs

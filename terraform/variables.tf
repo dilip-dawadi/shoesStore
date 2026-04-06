@@ -46,6 +46,18 @@ variable "desired_count" {
   default     = 1
 }
 
+variable "enable_container_insights" {
+  description = "Enable ECS Container Insights (additional CloudWatch cost)"
+  type        = bool
+  default     = true
+}
+
+variable "app_log_retention_days" {
+  description = "Retention in days for ECS application logs"
+  type        = number
+  default     = 30
+}
+
 # ── Secrets stored in SSM Parameter Store ─────────────────────────────────────
 # Create these with:
 #   aws ssm put-parameter --name /shoe-store/DATABASE_URL --type SecureString --value "..."
@@ -202,6 +214,32 @@ variable "autoscaling_scale_out_cooldown" {
   description = "Cooldown in seconds after a scale-out activity"
   type        = number
   default     = 60
+}
+
+# ── WAF Cost Controls ────────────────────────────────────────────────────────
+
+variable "enable_waf_logging" {
+  description = "Enable WAF request logging to CloudWatch Logs"
+  type        = bool
+  default     = true
+}
+
+variable "waf_log_retention_days" {
+  description = "Retention in days for WAF logs"
+  type        = number
+  default     = 90
+}
+
+variable "waf_enable_php_rules" {
+  description = "Enable AWS managed PHP rule set in WAF"
+  type        = bool
+  default     = true
+}
+
+variable "waf_rate_limit_per_5m" {
+  description = "Per-IP WAF rate limit over 5 minutes"
+  type        = number
+  default     = 2000
 }
 
 # ── CloudWatch Alarms ────────────────────────────────────────────────────────
