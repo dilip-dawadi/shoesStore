@@ -389,3 +389,48 @@ variable "synthetics_success_percent_alarm_threshold" {
   type        = number
   default     = 100
 }
+
+# ── Custom Domain (Cloudflare + ACM) ────────────────────────────────────────
+
+variable "enable_custom_domain" {
+  description = "Enable custom domain, ACM certificate, and Cloudflare DNS records"
+  type        = bool
+  default     = false
+}
+
+variable "root_domain" {
+  description = "Apex domain managed in Cloudflare (for example, example.com)"
+  type        = string
+  default     = ""
+}
+
+variable "subdomain" {
+  description = "Subdomain label to point to the ALB (for example, shop)"
+  type        = string
+  default     = "shop"
+}
+
+variable "cloudflare_api_token" {
+  description = "Cloudflare API token with Zone:Read and DNS:Edit on the target zone"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "cloudflare_zone_id" {
+  description = "Optional Cloudflare zone ID. Leave empty to look up by root_domain."
+  type        = string
+  default     = ""
+}
+
+variable "cloudflare_proxied" {
+  description = "Whether to proxy the app CNAME record through Cloudflare"
+  type        = bool
+  default     = true
+}
+
+variable "cloudflare_dns_ttl" {
+  description = "TTL (seconds) when cloudflare_proxied is false"
+  type        = number
+  default     = 300
+}

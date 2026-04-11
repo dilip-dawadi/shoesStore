@@ -275,35 +275,51 @@ aws ecs execute-command \
 
 ## 10. Add HTTPS to the ALB
 
-Currently the app runs on HTTP only. To add HTTPS:
+This repository now supports Terraform-managed Cloudflare subdomains + ACM DNS validation.
+
+### Cost notes
+
+- Cloudflare DNS and proxied subdomain on the Free plan: **$0**
+- AWS ACM public certificate: **$0**
+- ALB with HTTPS listener: no separate cert charge; normal ALB hourly + LCU charges still apply
+- Domain registration itself may have yearly cost (depends on registrar/TLD)
+
+### Prerequisites
+
+1. Your domain zone is active in Cloudflare.
+1. Create a Cloudflare API token with permissions Zone:Read and DNS:Edit.
+1. Export the token before running Terraform:
 
 ```bash
-# Step 1 — Request a free certificate in ACM (must own a domain)
-aws acm request-certificate \
-  --domain-name yourdomain.com \
-  --validation-method DNS \
-  --region us-east-1
-
-# Step 2 — Add the HTTPS listener in terraform/alb.tf:
-# resource "aws_lb_listener" "https" {
-#   load_balancer_arn = aws_lb.app.arn
-#   port              = 443
-#   protocol          = "HTTPS"
-#   ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
-#   certificate_arn   = "arn:aws:acm:us-east-1:ACCOUNT:certificate/CERT_ID"
-#   default_action {
-#     type             = "forward"
-#     target_group_arn = aws_lb_target_group.app.arn
-#   }
-# }
-
-# Step 3 — Apply
-cd terraform && terraform apply
-
-# Step 4 — Once on HTTPS, re-enable in backend/app.js:
-# upgradeInsecureRequests: []   (remove the null)
-# crossOriginOpenerPolicy: false  → remove this line
+export TF_VAR_cloudflare_api_token="YOUR_CLOUDFLARE_API_TOKEN"
 ```
+
+### Steps
+
+1. Edit `terraform/terraform.tfvars` and set `enable_custom_domain = true`, `root_domain = "yourdomain.com"`, and `subdomain = "shop"` (or any label you want). Optionally set `cloudflare_zone_id` if your token can access multiple zones with similar names.
+
+1. Initialize and apply Terraform:
+
+```bash
+cd terraform
+terraform init -upgrade
+terraform plan
+terraform apply
+```
+
+1. In Cloudflare Dashboard -> SSL/TLS, set mode to **Full (strict)**.
+
+1. Verify:
+
+```bash
+curl -I https://shop.yourdomain.com
+curl -I http://shop.yourdomain.com
+```
+
+- Expect HTTPS to return 200 (or app response)
+- Expect HTTP to redirect to HTTPS (301)
+
+1. If your backend security headers were temporarily loosened for HTTP-only mode, restore strict settings in `backend/app.js`.
 
 ---
 

@@ -18,6 +18,10 @@ locals {
     "SMTP_PASS",
   ]
 
+  frontend_url_effective = trimspace(var.frontend_url) != "" ? trimspace(var.frontend_url) : (
+    local.custom_domain_enabled ? "https://${local.custom_domain_fqdn}" : "http://${aws_lb.app.dns_name}"
+  )
+
   alb_resource_label = "${join("/", slice(split("/", aws_lb.app.arn), 1, length(split("/", aws_lb.app.arn))))}/${join("/", concat(["targetgroup"], slice(split("/", aws_lb_target_group.app.arn), 1, length(split("/", aws_lb_target_group.app.arn)))))}"
 }
 
@@ -82,7 +86,7 @@ resource "aws_ecs_task_definition" "app" {
         { name = "SMTP_SECURE", value = var.smtp_secure },
         { name = "SMTP_FROM", value = var.smtp_from },
         { name = "USE_AWS_SNS", value = var.use_aws_sns },
-        { name = "FRONTEND_URL", value = var.frontend_url },
+        { name = "FRONTEND_URL", value = local.frontend_url_effective },
       ]
 
       # Sensitive values pulled from SSM Parameter Store at container start
@@ -129,7 +133,11 @@ resource "aws_ecs_service" "app" {
     container_port   = var.container_port
   }
 
-  depends_on = [aws_lb_listener.http]
+  depends_on = [
+    aws_lb_listener.http,
+    aws_lb_listener.https,
+    aws_lb_listener_rule.http_to_https_redirect,
+  ]
 
   lifecycle {
     ignore_changes = [desired_count] # allow manual scaling without Terraform drift

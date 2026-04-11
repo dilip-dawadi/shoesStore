@@ -4,7 +4,9 @@ locals {
   synthetics_canary_name = "${var.app_name}-health"
 
   synthetics_healthcheck_url = trimsuffix(
-    trimspace(var.synthetics_healthcheck_url) != "" ? trimspace(var.synthetics_healthcheck_url) : "http://${aws_lb.app.dns_name}/health",
+    trimspace(var.synthetics_healthcheck_url) != "" ? trimspace(var.synthetics_healthcheck_url) : (
+      local.custom_domain_enabled ? "https://${local.custom_domain_fqdn}/health" : "http://${aws_lb.app.dns_name}/health"
+    ),
     "/",
   )
 

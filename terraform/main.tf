@@ -10,6 +10,10 @@ terraform {
       source  = "hashicorp/archive"
       version = "~> 2.4"
     }
+    cloudflare = {
+      source  = "cloudflare/cloudflare"
+      version = "~> 4.40"
+    }
   }
 
   # Optional: store state in S3 so the team shares it.
@@ -23,6 +27,10 @@ terraform {
 
 provider "aws" {
   region = var.aws_region
+}
+
+provider "cloudflare" {
+  api_token = trimspace(var.cloudflare_api_token) != "" ? trimspace(var.cloudflare_api_token) : null
 }
 
 # ── Data sources ──────────────────────────────────────────────────────────────

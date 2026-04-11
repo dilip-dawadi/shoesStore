@@ -1,6 +1,16 @@
 output "app_url" {
   description = "Public URL of the deployed application (via ALB)"
-  value       = "http://${aws_lb.app.dns_name}"
+  value       = local.custom_domain_enabled ? "https://${local.custom_domain_fqdn}" : "http://${aws_lb.app.dns_name}"
+}
+
+output "custom_domain_fqdn" {
+  description = "Configured custom domain (empty when disabled)"
+  value       = local.custom_domain_enabled ? local.custom_domain_fqdn : ""
+}
+
+output "alb_dns_name" {
+  description = "Underlying ALB DNS name"
+  value       = aws_lb.app.dns_name
 }
 
 output "ecr_image" {
