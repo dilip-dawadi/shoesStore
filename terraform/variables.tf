@@ -224,6 +224,36 @@ variable "enable_waf_logging" {
   default     = true
 }
 
+variable "enable_waf" {
+  description = "Enable WAF Web ACL and ALB association"
+  type        = bool
+  default     = true
+}
+
+variable "waf_enable_ip_reputation_rules" {
+  description = "Enable AWS managed IP reputation rule group"
+  type        = bool
+  default     = true
+}
+
+variable "waf_enable_common_rules" {
+  description = "Enable AWS managed Common Rule Set"
+  type        = bool
+  default     = true
+}
+
+variable "waf_enable_known_bad_inputs_rules" {
+  description = "Enable AWS managed Known Bad Inputs rule group"
+  type        = bool
+  default     = true
+}
+
+variable "waf_enable_sqli_rules" {
+  description = "Enable AWS managed SQLi rule group"
+  type        = bool
+  default     = true
+}
+
 variable "waf_log_retention_days" {
   description = "Retention in days for WAF logs"
   type        = number
@@ -300,6 +330,12 @@ variable "operations_dashboard_name" {
   default     = ""
 }
 
+variable "enable_operations_dashboard" {
+  description = "Enable CloudWatch operations dashboard"
+  type        = bool
+  default     = true
+}
+
 variable "synthetics_canary_runtime_version" {
   description = "CloudWatch Synthetics runtime version"
   type        = string
@@ -316,6 +352,12 @@ variable "synthetics_canary_timeout_seconds" {
   description = "Synthetics canary timeout"
   type        = number
   default     = 30
+}
+
+variable "start_synthetics_canary" {
+  description = "Start and keep the synthetics canary running"
+  type        = bool
+  default     = true
 }
 
 variable "synthetics_artifact_expiration_days" {

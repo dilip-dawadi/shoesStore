@@ -152,7 +152,7 @@ resource "aws_synthetics_canary" "health" {
   execution_role_arn   = aws_iam_role.synthetics_canary.arn
   handler              = "index.handler"
   runtime_version      = var.synthetics_canary_runtime_version
-  start_canary         = true
+  start_canary         = var.start_synthetics_canary
   zip_file             = data.archive_file.synthetics_canary.output_path
 
   schedule {
@@ -173,6 +173,8 @@ resource "aws_synthetics_canary" "health" {
 }
 
 resource "aws_cloudwatch_dashboard" "operations" {
+  count = var.enable_operations_dashboard ? 1 : 0
+
   dashboard_name = local.operations_dashboard_name_effective
 
   dashboard_body = jsonencode({

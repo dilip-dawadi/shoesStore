@@ -24,13 +24,13 @@ output "cloudwatch_log_group" {
 }
 
 output "waf_web_acl_arn" {
-  description = "ARN of the WAFv2 Web ACL protecting the ALB"
-  value       = aws_wafv2_web_acl.app.arn
+  description = "ARN of the WAFv2 Web ACL protecting the ALB (empty when disabled)"
+  value       = var.enable_waf ? aws_wafv2_web_acl.app[0].arn : ""
 }
 
 output "waf_log_group" {
   description = "CloudWatch log group for WAF request logs (empty when logging is disabled)"
-  value       = var.enable_waf_logging ? aws_cloudwatch_log_group.waf[0].name : ""
+  value       = var.enable_waf && var.enable_waf_logging ? aws_cloudwatch_log_group.waf[0].name : ""
 }
 
 output "alarms_sns_topic_arn" {
@@ -39,8 +39,8 @@ output "alarms_sns_topic_arn" {
 }
 
 output "operations_dashboard_name" {
-  description = "CloudWatch operations dashboard name"
-  value       = aws_cloudwatch_dashboard.operations.dashboard_name
+  description = "CloudWatch operations dashboard name (empty when disabled)"
+  value       = var.enable_operations_dashboard ? aws_cloudwatch_dashboard.operations[0].dashboard_name : ""
 }
 
 output "synthetics_canary_name" {

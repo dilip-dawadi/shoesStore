@@ -10,6 +10,8 @@
 # Default action: ALLOW (all non-matching traffic passes through)
 
 resource "aws_wafv2_web_acl" "app" {
+  count = var.enable_waf ? 1 : 0
+
   name        = "${var.app_name}-waf"
   description = "WAF for ${var.app_name} ALB - OWASP, rate-limit, IP reputation"
   scope       = "REGIONAL"
@@ -19,25 +21,29 @@ resource "aws_wafv2_web_acl" "app" {
   }
 
   # ── 1. Amazon IP Reputation List ────────────────────────────────────────────
-  rule {
-    name     = "AWSManagedRulesAmazonIpReputationList"
-    priority = 10
+  dynamic "rule" {
+    for_each = var.waf_enable_ip_reputation_rules ? [1] : []
 
-    override_action {
-      none {} # honour the managed-rule action (BLOCK)
-    }
+    content {
+      name     = "AWSManagedRulesAmazonIpReputationList"
+      priority = 10
 
-    statement {
-      managed_rule_group_statement {
-        name        = "AWSManagedRulesAmazonIpReputationList"
-        vendor_name = "AWS"
+      override_action {
+        none {} # honour the managed-rule action (BLOCK)
       }
-    }
 
-    visibility_config {
-      cloudwatch_metrics_enabled = true
-      metric_name                = "${var.app_name}-ip-reputation"
-      sampled_requests_enabled   = true
+      statement {
+        managed_rule_group_statement {
+          name        = "AWSManagedRulesAmazonIpReputationList"
+          vendor_name = "AWS"
+        }
+      }
+
+      visibility_config {
+        cloudwatch_metrics_enabled = true
+        metric_name                = "${var.app_name}-ip-reputation"
+        sampled_requests_enabled   = true
+      }
     }
   }
 
@@ -66,80 +72,92 @@ resource "aws_wafv2_web_acl" "app" {
   }
 
   # ── 3. AWS Core Rule Set (CRS) ───────────────────────────────────────────────
-  rule {
-    name     = "AWSManagedRulesCommonRuleSet"
-    priority = 30
+  dynamic "rule" {
+    for_each = var.waf_enable_common_rules ? [1] : []
 
-    override_action {
-      none {}
-    }
+    content {
+      name     = "AWSManagedRulesCommonRuleSet"
+      priority = 30
 
-    statement {
-      managed_rule_group_statement {
-        name        = "AWSManagedRulesCommonRuleSet"
-        vendor_name = "AWS"
+      override_action {
+        none {}
+      }
 
-        # SizeRestrictions_BODY would block JSON bodies >8 KB which breaks
-        # product-image upload payloads – count instead of block.
-        rule_action_override {
-          name = "SizeRestrictions_BODY"
-          action_to_use {
-            count {}
+      statement {
+        managed_rule_group_statement {
+          name        = "AWSManagedRulesCommonRuleSet"
+          vendor_name = "AWS"
+
+          # SizeRestrictions_BODY would block JSON bodies >8 KB which breaks
+          # product-image upload payloads – count instead of block.
+          rule_action_override {
+            name = "SizeRestrictions_BODY"
+            action_to_use {
+              count {}
+            }
           }
         }
       }
-    }
 
-    visibility_config {
-      cloudwatch_metrics_enabled = true
-      metric_name                = "${var.app_name}-crs"
-      sampled_requests_enabled   = true
+      visibility_config {
+        cloudwatch_metrics_enabled = true
+        metric_name                = "${var.app_name}-crs"
+        sampled_requests_enabled   = true
+      }
     }
   }
 
   # ── 4. Known Bad Inputs ──────────────────────────────────────────────────────
-  rule {
-    name     = "AWSManagedRulesKnownBadInputsRuleSet"
-    priority = 40
+  dynamic "rule" {
+    for_each = var.waf_enable_known_bad_inputs_rules ? [1] : []
 
-    override_action {
-      none {}
-    }
+    content {
+      name     = "AWSManagedRulesKnownBadInputsRuleSet"
+      priority = 40
 
-    statement {
-      managed_rule_group_statement {
-        name        = "AWSManagedRulesKnownBadInputsRuleSet"
-        vendor_name = "AWS"
+      override_action {
+        none {}
       }
-    }
 
-    visibility_config {
-      cloudwatch_metrics_enabled = true
-      metric_name                = "${var.app_name}-bad-inputs"
-      sampled_requests_enabled   = true
+      statement {
+        managed_rule_group_statement {
+          name        = "AWSManagedRulesKnownBadInputsRuleSet"
+          vendor_name = "AWS"
+        }
+      }
+
+      visibility_config {
+        cloudwatch_metrics_enabled = true
+        metric_name                = "${var.app_name}-bad-inputs"
+        sampled_requests_enabled   = true
+      }
     }
   }
 
   # ── 5. SQL database rules ────────────────────────────────────────────────────
-  rule {
-    name     = "AWSManagedRulesSQLiRuleSet"
-    priority = 50
+  dynamic "rule" {
+    for_each = var.waf_enable_sqli_rules ? [1] : []
 
-    override_action {
-      none {}
-    }
+    content {
+      name     = "AWSManagedRulesSQLiRuleSet"
+      priority = 50
 
-    statement {
-      managed_rule_group_statement {
-        name        = "AWSManagedRulesSQLiRuleSet"
-        vendor_name = "AWS"
+      override_action {
+        none {}
       }
-    }
 
-    visibility_config {
-      cloudwatch_metrics_enabled = true
-      metric_name                = "${var.app_name}-sqli"
-      sampled_requests_enabled   = true
+      statement {
+        managed_rule_group_statement {
+          name        = "AWSManagedRulesSQLiRuleSet"
+          vendor_name = "AWS"
+        }
+      }
+
+      visibility_config {
+        cloudwatch_metrics_enabled = true
+        metric_name                = "${var.app_name}-sqli"
+        sampled_requests_enabled   = true
+      }
     }
   }
 
@@ -183,15 +201,17 @@ resource "aws_wafv2_web_acl" "app" {
 # ── Associate WAF with the ALB ────────────────────────────────────────────────
 
 resource "aws_wafv2_web_acl_association" "alb" {
+  count = var.enable_waf ? 1 : 0
+
   resource_arn = aws_lb.app.arn
-  web_acl_arn  = aws_wafv2_web_acl.app.arn
+  web_acl_arn  = aws_wafv2_web_acl.app[0].arn
 }
 
 # ── WAF Logging → CloudWatch Logs ────────────────────────────────────────────
 # Log group name MUST start with "aws-waf-logs-"
 
 resource "aws_cloudwatch_log_group" "waf" {
-  count = var.enable_waf_logging ? 1 : 0
+  count = var.enable_waf && var.enable_waf_logging ? 1 : 0
 
   name              = "aws-waf-logs-${var.app_name}"
   retention_in_days = var.waf_log_retention_days
@@ -200,10 +220,10 @@ resource "aws_cloudwatch_log_group" "waf" {
 }
 
 resource "aws_wafv2_web_acl_logging_configuration" "app" {
-  count = var.enable_waf_logging ? 1 : 0
+  count = var.enable_waf && var.enable_waf_logging ? 1 : 0
 
   log_destination_configs = [aws_cloudwatch_log_group.waf[0].arn]
-  resource_arn            = aws_wafv2_web_acl.app.arn
+  resource_arn            = aws_wafv2_web_acl.app[0].arn
 
   # Redact sensitive headers before storing logs
   redacted_fields {
