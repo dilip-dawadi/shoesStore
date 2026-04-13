@@ -1,5 +1,6 @@
 locals {
   operations_dashboard_name_effective = trimspace(var.operations_dashboard_name) != "" ? trimspace(var.operations_dashboard_name) : "${var.app_name}-operations"
+  billing_dashboard_name_effective    = trimspace(var.billing_dashboard_name) != "" ? trimspace(var.billing_dashboard_name) : "${var.app_name}-billing"
 
   synthetics_canary_name = "${var.app_name}-health"
 
@@ -10,11 +11,14 @@ locals {
     "/",
   )
 
-  operations_dashboard_alarm_arns = [
-    aws_cloudwatch_metric_alarm.alb_target_5xx.arn,
-    aws_cloudwatch_metric_alarm.ecs_cpu_high.arn,
-    aws_cloudwatch_metric_alarm.ecs_memory_high.arn,
-  ]
+  operations_dashboard_alarm_arns = concat(
+    [
+      aws_cloudwatch_metric_alarm.alb_target_5xx.arn,
+      aws_cloudwatch_metric_alarm.ecs_cpu_high.arn,
+      aws_cloudwatch_metric_alarm.ecs_memory_high.arn,
+    ],
+    values(aws_cloudwatch_metric_alarm.billing_cost_threshold)[*].arn,
+  )
 }
 
 data "archive_file" "synthetics_canary" {
@@ -221,6 +225,84 @@ resource "aws_cloudwatch_dashboard" "operations" {
           metrics = [
             ["AWS/ECS", "CPUUtilization", "ClusterName", aws_ecs_cluster.main.name, "ServiceName", aws_ecs_service.app.name],
             ["AWS/ECS", "MemoryUtilization", "ClusterName", aws_ecs_cluster.main.name, "ServiceName", aws_ecs_service.app.name],
+          ]
+        }
+      },
+    ]
+  })
+}
+
+resource "aws_cloudwatch_dashboard" "billing" {
+  count = var.enable_billing_dashboard ? 1 : 0
+
+  dashboard_name = local.billing_dashboard_name_effective
+
+  dashboard_body = jsonencode({
+    widgets = [
+      {
+        type   = "metric"
+        x      = 0
+        y      = 0
+        width  = 8
+        height = 6
+        properties = {
+          title     = "Estimated Charges (${var.billing_dashboard_currency})"
+          region    = "us-east-1"
+          view      = "singleValue"
+          stat      = "Maximum"
+          period    = 21600
+          sparkline = true
+          metrics = [
+            ["AWS/Billing", "EstimatedCharges", "Currency", var.billing_dashboard_currency, { label = "Account Total" }],
+          ]
+        }
+      },
+      {
+        type   = "metric"
+        x      = 8
+        y      = 0
+        width  = 16
+        height = 6
+        properties = {
+          title  = "Estimated Charges by Service (${var.billing_dashboard_currency})"
+          region = "us-east-1"
+          view   = "timeSeries"
+          stat   = "Maximum"
+          period = 21600
+          metrics = [
+            [
+              {
+                expression = "SEARCH('{AWS/Billing,Currency,ServiceName} MetricName=\"EstimatedCharges\" Currency=\"${var.billing_dashboard_currency}\"', 'Maximum', 21600)"
+                id         = "e1"
+                label      = "Service Charges"
+                region     = "us-east-1"
+              },
+            ],
+          ]
+        }
+      },
+      {
+        type   = "metric"
+        x      = 0
+        y      = 6
+        width  = 24
+        height = 6
+        properties = {
+          title   = "Top Service Charges (${var.billing_dashboard_currency})"
+          region  = "us-east-1"
+          view    = "bar"
+          stacked = false
+          stat    = "Maximum"
+          period  = 21600
+          metrics = [
+            [
+              {
+                expression = "SORT(SEARCH('{AWS/Billing,Currency,ServiceName} MetricName=\"EstimatedCharges\" Currency=\"${var.billing_dashboard_currency}\"', 'Maximum', 21600), MAX, DESC, 10)"
+                id         = "e2"
+                label      = "Top 10 Services"
+                region     = "us-east-1"
+              },
+            ],
           ]
         }
       },

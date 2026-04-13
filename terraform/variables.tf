@@ -286,6 +286,30 @@ variable "alarm_notification_email" {
   default     = "info@dilipdawadi.com.np"
 }
 
+variable "enable_cost_budget_alerts" {
+  description = "Enable AWS Budgets monthly cost alerts"
+  type        = bool
+  default     = true
+}
+
+variable "cost_budget_name" {
+  description = "Optional AWS Budget name. Leave empty to use app_name-monthly-cost."
+  type        = string
+  default     = ""
+}
+
+variable "monthly_cost_budget_limit" {
+  description = "Monthly AWS cost budget limit in billing dashboard currency units"
+  type        = number
+  default     = 100
+}
+
+variable "cost_budget_alert_thresholds" {
+  description = "Budget alert thresholds as percentages of the monthly budget"
+  type        = list(number)
+  default     = [50, 80, 100]
+}
+
 variable "alb_5xx_alarm_threshold" {
   description = "ALB target 5xx count threshold"
   type        = number
@@ -334,6 +358,24 @@ variable "enable_operations_dashboard" {
   description = "Enable CloudWatch operations dashboard"
   type        = bool
   default     = true
+}
+
+variable "billing_dashboard_name" {
+  description = "Optional CloudWatch billing dashboard name. Leave empty to use app_name-billing."
+  type        = string
+  default     = ""
+}
+
+variable "enable_billing_dashboard" {
+  description = "Enable CloudWatch billing dashboard"
+  type        = bool
+  default     = true
+}
+
+variable "billing_dashboard_currency" {
+  description = "Currency dimension used for AWS/Billing metrics (typically USD)"
+  type        = string
+  default     = "USD"
 }
 
 variable "synthetics_canary_runtime_version" {

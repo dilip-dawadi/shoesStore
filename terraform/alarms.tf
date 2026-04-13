@@ -17,6 +17,10 @@ locals {
   )
 
   alarm_actions_effective = length(var.cloudwatch_alarm_actions) > 0 ? var.cloudwatch_alarm_actions : [aws_sns_topic.alarms.arn]
+
+  cost_budget_alarm_thresholds = {
+    for threshold in toset(var.cost_budget_alert_thresholds) : tostring(threshold) => threshold
+  }
 }
 
 resource "aws_cloudwatch_metric_alarm" "alb_target_5xx" {
@@ -79,6 +83,29 @@ resource "aws_cloudwatch_metric_alarm" "ecs_memory_high" {
   dimensions = {
     ClusterName = aws_ecs_cluster.main.name
     ServiceName = aws_ecs_service.app.name
+  }
+
+  alarm_actions = local.alarm_actions_effective
+  ok_actions    = local.alarm_actions_effective
+}
+
+resource "aws_cloudwatch_metric_alarm" "billing_cost_threshold" {
+  for_each = var.enable_cost_budget_alerts ? local.cost_budget_alarm_thresholds : {}
+
+  alarm_name          = "${var.app_name}-billing-cost-${replace(each.key, ".", "p")}-pct"
+  alarm_description   = "Estimated charges reached ${each.value}% of monthly budget ${var.monthly_cost_budget_limit} ${var.billing_dashboard_currency}"
+  namespace           = "AWS/Billing"
+  metric_name         = "EstimatedCharges"
+  statistic           = "Maximum"
+  period              = 21600
+  evaluation_periods  = 1
+  datapoints_to_alarm = 1
+  threshold           = (var.monthly_cost_budget_limit * each.value) / 100
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    Currency = var.billing_dashboard_currency
   }
 
   alarm_actions = local.alarm_actions_effective

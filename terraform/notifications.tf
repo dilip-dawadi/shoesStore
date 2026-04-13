@@ -37,3 +37,24 @@ resource "aws_sns_topic_subscription" "alarm_email" {
   protocol  = "email"
   endpoint  = trimspace(var.alarm_notification_email)
 }
+
+resource "aws_budgets_budget" "monthly_cost" {
+  count = var.enable_cost_budget_alerts && trimspace(var.alarm_notification_email) != "" ? 1 : 0
+
+  name         = trimspace(var.cost_budget_name) != "" ? trimspace(var.cost_budget_name) : "${var.app_name}-monthly-cost"
+  budget_type  = "COST"
+  limit_amount = tostring(var.monthly_cost_budget_limit)
+  limit_unit   = var.billing_dashboard_currency
+  time_unit    = "MONTHLY"
+
+  dynamic "notification" {
+    for_each = var.cost_budget_alert_thresholds
+    content {
+      comparison_operator        = "GREATER_THAN"
+      threshold                  = notification.value
+      threshold_type             = "PERCENTAGE"
+      notification_type          = "ACTUAL"
+      subscriber_email_addresses = [trimspace(var.alarm_notification_email)]
+    }
+  }
+}

@@ -48,9 +48,19 @@ output "alarms_sns_topic_arn" {
   value       = aws_sns_topic.alarms.arn
 }
 
+output "monthly_cost_budget_name" {
+  description = "AWS Budgets monthly cost budget name (empty when disabled)"
+  value       = var.enable_cost_budget_alerts && trimspace(var.alarm_notification_email) != "" ? aws_budgets_budget.monthly_cost[0].name : ""
+}
+
 output "operations_dashboard_name" {
   description = "CloudWatch operations dashboard name (empty when disabled)"
   value       = var.enable_operations_dashboard ? aws_cloudwatch_dashboard.operations[0].dashboard_name : ""
+}
+
+output "billing_dashboard_name" {
+  description = "CloudWatch billing dashboard name (empty when disabled)"
+  value       = var.enable_billing_dashboard ? aws_cloudwatch_dashboard.billing[0].dashboard_name : ""
 }
 
 output "synthetics_canary_name" {
